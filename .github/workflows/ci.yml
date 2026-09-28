@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - fix-ci
   merge_group:
   workflow_dispatch:
 
