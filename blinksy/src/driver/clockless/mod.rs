@@ -73,6 +73,7 @@ use crate::{
 };
 
 mod delay;
+pub mod spi;
 
 pub use self::delay::*;
 
