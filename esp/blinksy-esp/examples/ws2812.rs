@@ -44,7 +44,8 @@ fn main() -> ! {
     layout1d!(Layout, 1);
 
     let ws2812_driver = {
-        let data_pin = p.GPIO48;
+        // Set this to the data pin your LED is connected to
+        let data_pin = p.GPIO4;
         let rmt_clk_freq = hal::time::Rate::from_mhz(80);
 
         let rmt = hal::rmt::Rmt::new(p.RMT, rmt_clk_freq).unwrap();

@@ -1,5 +1,5 @@
 [target.xtensa-esp32-none-elf]
-runner = "espflash flash --monitor --chip esp32 --log-format defmt"
+runner = "espflash flash --monitor --chip esp32"
 
 [env]
 DEFMT_LOG="info"
@@ -9,8 +9,6 @@ ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM="true"
 rustflags = [
     # Required by esp-backtrace, but may negatively impact code performance
     "-C", "force-frame-pointers",
-    # Required by defmt
-    "-C", "link-arg=-Tdefmt.x",
     # Required by esp-hal
     "-C", "link-arg=-Tlinkall.x",
 ]
