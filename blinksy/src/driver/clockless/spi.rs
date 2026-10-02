@@ -13,7 +13,7 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
 
     fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
-        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+        _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         // To start with let's assume the spi frequency is set to 3 Mhz. We need to calculate
         // the bit pattern to send to spi to make everything work
@@ -26,6 +26,18 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
         let t_1l = Led::T_1L / clock_period;
         let t_reset = Led::T_RESET / clock_period;
 
+        // Overall a one should take exactly the same amount to transmit as a zero
+        assert_eq!(t_0h + t_0l, t_1h + t_1l);
+
+        // Right now we're making this assumption
+        assert_eq!(t_0h + t_0l, 3);
+        assert_eq!(t_reset, 150);
+
+        // For the time being we're going to assume that the spi buffer is going to be big
+        // enough. In reality, we will have to do some things to make sure that's true
+        // const SPI_BUFFER_SIZE_BITS: usize = 64 * 3 * 8 * 3 + 140;
+        // const SPI_BUFFER_SIZE: usize = SPI_BUFFER_SIZE_BITS.div_ceil(8);
+
         #[cfg(feature = "defmt")]
         defmt::info!(
             "0: {} {}, 1: {} {}, reset: {}",
@@ -35,6 +47,9 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
             t_1l,
             t_reset
         );
+
+        // Just to get started we'll just send 24 bits of one to the LED
+
         todo!()
     }
 }
