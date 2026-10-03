@@ -36,6 +36,34 @@ pub const fn buffer_size<Led: ClocklessLed>(freq_hz: u32) -> usize {
     total_bits.div_ceil(8) as usize
 }
 
+struct PulseCode {
+    // For the moment we're going to assume that we can fit a pulsecode inside one byte
+    // TODO: Handle more general case
+    buffer: BitArray<[u8; 1], Msb0>,
+    len: usize,
+}
+
+impl PulseCode {
+    fn new(high: usize, low: usize) -> Self {
+        let mut buffer = BitArray::new([0u8; 1]);
+        for mut v in &mut buffer[..high] {
+            v.set(true);
+        }
+        Self {
+            buffer,
+            len: high + low,
+        }
+    }
+
+    fn bits(&self) -> &BitSlice<u8, Msb0> {
+        &self.buffer[..self.len]
+    }
+
+    fn len(&self) -> usize {
+        self.len
+    }
+}
+
 impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
     pub fn new(spi: S, freq_hz: u32) -> Self {
         Self {
@@ -53,7 +81,6 @@ impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
         let t_1h = (Led::T_1H / clock_period) as usize;
         let t_1l = (Led::T_1L / clock_period) as usize;
         //let t_reset = Led::T_RESET / clock_period;
-        let t1 = t_1h + t_1l;
 
         // TODO: Check timings are within the LED spec
 
@@ -85,16 +112,12 @@ impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
         // Just to get started we'll just send 24 bits of one (2 high, followed by 1 low) to the LED
         // type SpiBuffer = BitArr!(for 24 * 3, in u8);
         let mut buffer = BitArray::<[u8; BUFFER_SIZE], Msb0>::new([0u8; BUFFER_SIZE]);
-        // For the moment we're going to assume that we can fit a single bit inside one byte
-        let mut one = BitArray::<[u8; 1], Msb0>::new([0u8; 1]);
-        for mut v in &mut one[..t_1h] {
-            v.set(true);
-        }
-        let one_slice = &one.as_bitslice()[..t1];
+        let one = PulseCode::new(t_1h, t_1l);
+
         let mut dest = buffer.as_mut_bitslice();
         for _ in 0..24 {
-            dest[..one_slice.len()].clone_from_bitslice(one_slice);
-            dest = &mut dest[one_slice.len()..]
+            dest[..one.len()].clone_from_bitslice(one.bits());
+            dest = &mut dest[one.len()..]
         }
         #[cfg(feature = "defmt")]
         defmt::info!("{}", buffer.as_raw_slice());
