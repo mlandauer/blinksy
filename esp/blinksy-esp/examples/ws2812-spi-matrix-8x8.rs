@@ -81,7 +81,10 @@ fn main() -> ! {
         blinksy::driver::spi::buffer_size::<Ws2812>(SPI_FREQ.as_hz())
     );
     let writer =
-        SpiWriter::<_, { blinksy::driver::spi::buffer_size::<Ws2812>(SPI_FREQ.as_hz()) }>::new(spi);
+        SpiWriter::<_, { blinksy::driver::spi::buffer_size::<Ws2812>(SPI_FREQ.as_hz()) }>::new(
+            spi,
+            SPI_FREQ.as_hz(),
+        );
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()
         .with_writer(writer);
