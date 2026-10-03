@@ -17,15 +17,8 @@ impl<S: SpiBus, const F: u32> SpiWriter<S, F> {
     pub fn new(spi: S) -> Self {
         Self { spi }
     }
-}
 
-impl<S: SpiBus, Led: ClocklessLed, const F: u32> ClocklessWriter<Led> for SpiWriter<S, F> {
-    type Error = S::Error;
-
-    fn write<const FRAME_BUFFER_SIZE: usize>(
-        &mut self,
-        _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), Self::Error> {
+    fn test_write<Led: ClocklessLed>(&mut self) -> Result<(), S::Error> {
         let clock_period = self.clock_period();
 
         // Calculate the clock cycles for each required duration
@@ -62,9 +55,10 @@ impl<S: SpiBus, Led: ClocklessLed, const F: u32> ClocklessWriter<Led> for SpiWri
         defmt::info!("one period high: {} ns", (t_1h * clock_period).to_nanos());
         defmt::info!("one period low: {} ns", (t_1l * clock_period).to_nanos());
 
+        const BUFFER_BIT_SIZE: usize = 24 * 3 + 125;
         // Just to get started we'll just send 24 bits of one (2 high, followed by 1 low) to the LED
         // type SpiBuffer = BitArr!(for 24 * 3, in u8);
-        let mut buffer = bitarr![u8, Msb0; 0; 24 * 3 + 125];
+        let mut buffer = bitarr![u8, Msb0; 0; BUFFER_BIT_SIZE];
         let one = bitarr![u8, Msb0; 1, 1, 0];
         for v in buffer[0..24 * 3].chunks_exact_mut(3) {
             v.clone_from_bitslice(&one.as_bitslice()[0..3]);
@@ -72,5 +66,16 @@ impl<S: SpiBus, Led: ClocklessLed, const F: u32> ClocklessWriter<Led> for SpiWri
         #[cfg(feature = "defmt")]
         defmt::info!("{}", buffer.as_raw_slice());
         self.spi.write(buffer.as_raw_slice())
+    }
+}
+
+impl<S: SpiBus, Led: ClocklessLed, const F: u32> ClocklessWriter<Led> for SpiWriter<S, F> {
+    type Error = S::Error;
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.test_write::<Led>()
     }
 }
