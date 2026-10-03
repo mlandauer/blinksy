@@ -76,7 +76,7 @@ fn main() -> ! {
     let spi = Spi::new(p.SPI2, Config::default().with_frequency(SPI_FREQ))
         .unwrap()
         .with_mosi(p.GPIO17);
-    let writer = SpiWriter::<_, { SPI_FREQ.as_hz() }>::new(spi);
+    let writer = SpiWriter::<_, 25>::new(spi);
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()
         .with_writer(writer);
