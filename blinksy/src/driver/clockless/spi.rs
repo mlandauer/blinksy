@@ -5,32 +5,29 @@ use fugit::NanosDurationU32;
 
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
-pub struct SpiWriter<S: SpiBus> {
+pub struct SpiWriter<S: SpiBus, const F: u32> {
     spi: S,
-    freq: HertzU32,
 }
 
-impl<S: SpiBus> SpiWriter<S> {
-    pub fn new(spi: S, freq_hz: u32) -> Self {
-        Self {
-            spi,
-            freq: HertzU32::Hz(freq_hz),
-        }
+impl<S: SpiBus, const F: u32> SpiWriter<S, F> {
+    const fn clock_period(&self) -> NanosDurationU32 {
+        HertzU32::Hz(F).into_duration()
     }
 
-    fn clock_period(&self) -> NanosDurationU32 {
-        self.freq.into_duration()
+    pub fn new(spi: S) -> Self {
+        Self { spi }
     }
 }
 
-impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
+impl<S: SpiBus, Led: ClocklessLed, const F: u32> ClocklessWriter<Led> for SpiWriter<S, F> {
     type Error = S::Error;
 
     fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        let clock_period: NanosDurationU32 = self.clock_period();
+        let clock_period = self.clock_period();
+
         // Calculate the clock cycles for each required duration
         let t_0h = Led::T_0H / clock_period;
         let t_0l = Led::T_0L / clock_period;
