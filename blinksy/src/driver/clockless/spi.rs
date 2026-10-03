@@ -10,49 +10,19 @@ pub struct SpiWriter<S: SpiBus, const F: u32> {
 }
 
 impl<S: SpiBus, const F: u32> SpiWriter<S, F> {
-    const fn clock_period() -> NanosDurationU32 {
-        HertzU32::Hz(F).into_duration()
-    }
-
     pub fn new(spi: S) -> Self {
         Self { spi }
     }
 
-    const fn t_0h<Led: ClocklessLed>() -> u32 {
-        // Comverting to nanos here rather than using fugit magic so that this function can be const
-        // TODO: Use multiplication rather than division
-        Led::T_0H.to_nanos() / Self::clock_period().to_nanos()
-    }
-
-    const fn t_0l<Led: ClocklessLed>() -> u32 {
-        // Comverting to nanos here rather than using fugit magic so that this function can be const
-        Led::T_0L.to_nanos() / Self::clock_period().to_nanos()
-    }
-
-    const fn t_1h<Led: ClocklessLed>() -> u32 {
-        // Comverting to nanos here rather than using fugit magic so that this function can be const
-        Led::T_1H.to_nanos() / Self::clock_period().to_nanos()
-    }
-
-    const fn t_1l<Led: ClocklessLed>() -> u32 {
-        // Comverting to nanos here rather than using fugit magic so that this function can be const
-        Led::T_1L.to_nanos() / Self::clock_period().to_nanos()
-    }
-
-    const fn t_reset<Led: ClocklessLed>() -> u32 {
-        // Comverting to nanos here rather than using fugit magic so that this function can be const
-        Led::T_RESET.to_nanos() / Self::clock_period().to_nanos()
-    }
-
     fn test_write<Led: ClocklessLed>(&mut self) -> Result<(), S::Error> {
-        let clock_period = Self::clock_period();
+        let clock_period: NanosDurationU32 = HertzU32::Hz(F).into_duration();
 
         // Calculate the clock cycles for each required duration
-        let t_0h = Self::t_0h::<Led>();
-        let t_0l = Self::t_0l::<Led>();
-        let t_1h = Self::t_1h::<Led>();
-        let t_1l = Self::t_1l::<Led>();
-        let t_reset = Self::t_reset::<Led>();
+        let t_0h = Led::T_0H / clock_period;
+        let t_0l = Led::T_0L / clock_period;
+        let t_1h = Led::T_1H / clock_period;
+        let t_1l = Led::T_1L / clock_period;
+        let t_reset = Led::T_RESET / clock_period;
 
         // Overall a one should take exactly the same amount to transmit as a zero
         assert_eq!(t_0h + t_0l, t_1h + t_1l);
