@@ -1,4 +1,7 @@
+use core::marker::PhantomData;
+
 use bitvec::prelude::*;
+use bitvec::view::BitViewSized;
 use embedded_hal::spi::SpiBus;
 use fugit::HertzU32;
 use fugit::NanosDurationU32;
@@ -9,7 +12,11 @@ const fn t_0h<Led: ClocklessLed>(clock_period_ns: u32) -> u32 {
     Led::T_0H.to_nanos() / clock_period_ns
 }
 
-pub const fn buffer_size<Led: ClocklessLed>(pixel_count: usize, freq_hz: u32) -> usize {
+pub const fn buffer_size<Led: ClocklessLed, S, Word>(pixel_count: usize, freq_hz: u32) -> usize
+where
+    S: SpiBus<Word>,
+    Word: Copy + 'static,
+{
     let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
     let clock_period_ns = clock_period.to_nanos();
     // TODO: Use multiply instead of divide
@@ -26,10 +33,10 @@ pub const fn buffer_size<Led: ClocklessLed>(pixel_count: usize, freq_hz: u32) ->
     // We can't yet use max in const function
     let t_max = if t0 > t1 { t0 } else { t1 };
     // let t_max = t0.max(t1);
-
+    let spi_word_bits = size_of::<Word>() * 8;
     let total_bits =
-        u8::BITS as usize * pixel_count * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
-    total_bits.div_ceil(u8::BITS as usize)
+        spi_word_bits * pixel_count * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
+    total_bits.div_ceil(spi_word_bits)
 }
 
 struct PulseCode {
@@ -60,22 +67,35 @@ impl PulseCode {
     }
 }
 
-pub struct SpiWriter<S: SpiBus, const BUFFER_SIZE: usize> {
+pub struct SpiWriter<Word, S, const BUFFER_SIZE: usize>
+where
+    Word: Copy + 'static,
+    S: SpiBus<Word>,
+{
     spi: S,
     freq: HertzU32,
+    word: PhantomData<Word>,
 }
 
-impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
+impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
+    SpiWriter<Word, S, BUFFER_SIZE>
+{
     pub fn new(spi: S, freq_hz: u32) -> Self {
         Self {
             spi,
             freq: HertzU32::Hz(freq_hz),
+            word: PhantomData,
         }
     }
 }
 
-impl<S: SpiBus, Led: ClocklessLed, const BUFFER_SIZE: usize> ClocklessWriter<Led>
-    for SpiWriter<S, BUFFER_SIZE>
+impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriter<Led>
+    for SpiWriter<Word, S, BUFFER_SIZE>
+where
+    Word: Copy + 'static,
+    S: SpiBus<Word>,
+    [Word; BUFFER_SIZE]: BitViewSized,
+    Led: ClocklessLed,
 {
     type Error = S::Error;
 
@@ -93,7 +113,7 @@ impl<S: SpiBus, Led: ClocklessLed, const BUFFER_SIZE: usize> ClocklessWriter<Led
 
         // TODO: Check that values are within tolerance. Otherwise return an error
 
-        let mut buffer = BitArray::<[u8; BUFFER_SIZE], Msb0>::new([0u8; BUFFER_SIZE]);
+        let mut buffer = BitArray::<[Word; BUFFER_SIZE], Msb0>::ZERO;
         let zero = PulseCode::new(t_0h, t_0l);
         let one = PulseCode::new(t_1h, t_1l);
 
@@ -106,6 +126,6 @@ impl<S: SpiBus, Led: ClocklessLed, const BUFFER_SIZE: usize> ClocklessWriter<Led
             dest[..zero.len()].clone_from_bitslice(zero.bits());
             dest = &mut dest[zero.len()..]
         }
-        self.spi.write(buffer.as_raw_slice())
+        self.spi.write(&buffer.into_inner())
     }
 }

@@ -24,6 +24,7 @@ use esp_hal::spi::master::Spi;
 use esp_hal::{self as hal, delay::Delay};
 //use panic_rtt_target as _;
 use esp_hal::time::Rate;
+use esp_hal::Blocking;
 use panic_rtt_target as _;
 
 extern crate alloc;
@@ -78,13 +79,13 @@ fn main() -> ! {
         .with_mosi(p.GPIO17);
     defmt::info!(
         "spi buffer size: {}",
-        blinksy::driver::spi::buffer_size::<Ws2812>(1, SPI_FREQ.as_hz())
+        blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(1, SPI_FREQ.as_hz())
     );
-    let writer =
-        SpiWriter::<_, { blinksy::driver::spi::buffer_size::<Ws2812>(1, SPI_FREQ.as_hz()) }>::new(
-            spi,
-            SPI_FREQ.as_hz(),
-        );
+    let writer = SpiWriter::<
+        _,
+        _,
+        { blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(1, SPI_FREQ.as_hz()) },
+    >::new(spi, SPI_FREQ.as_hz());
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()
         .with_writer(writer);
