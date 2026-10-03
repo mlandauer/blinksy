@@ -17,6 +17,10 @@ impl<S: SpiBus> SpiWriter<S> {
             freq: HertzU32::Hz(freq_hz),
         }
     }
+
+    fn clock_period(&self) -> NanosDurationU32 {
+        self.freq.into_duration()
+    }
 }
 
 impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
@@ -26,7 +30,7 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
         &mut self,
         _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        let clock_period: NanosDurationU32 = self.freq.into_duration();
+        let clock_period: NanosDurationU32 = self.clock_period();
         // Calculate the clock cycles for each required duration
         let t_0h = Led::T_0H / clock_period;
         let t_0l = Led::T_0L / clock_period;
@@ -55,6 +59,8 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
             t_1l,
             t_reset
         );
+
+        // TODO: Check that values are within tolerance. Otherwise return an error
 
         defmt::info!("one period high: {} ns", (t_1h * clock_period).to_nanos());
         defmt::info!("one period low: {} ns", (t_1l * clock_period).to_nanos());
