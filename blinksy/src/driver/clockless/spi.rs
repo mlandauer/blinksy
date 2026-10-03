@@ -32,8 +32,8 @@ pub const fn buffer_size<Led: ClocklessLed>(freq_hz: u32) -> usize {
     let t_max = if t0 > t1 { t0 } else { t1 };
     // let t_max = t0.max(t1);
 
-    let total_bits = 1 * 8 * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
-    total_bits.div_ceil(8)
+    let total_bits = 1 * u8::BITS as usize * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
+    total_bits.div_ceil(u8::BITS as usize)
 }
 
 struct PulseCode {
