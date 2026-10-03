@@ -76,8 +76,8 @@ impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
         let clock_period: NanosDurationU32 = self.freq.into_duration();
 
         // // Calculate the clock cycles for each required duration
-        //let t_0h = Led::T_0H / clock_period;
-        //let t_0l = Led::T_0L / clock_period;
+        let t_0h = (Led::T_0H / clock_period) as usize;
+        let t_0l = (Led::T_0L / clock_period) as usize;
         let t_1h = (Led::T_1H / clock_period) as usize;
         let t_1l = (Led::T_1L / clock_period) as usize;
         //let t_reset = Led::T_RESET / clock_period;
@@ -112,12 +112,17 @@ impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
         // Just to get started we'll just send 24 bits of one (2 high, followed by 1 low) to the LED
         // type SpiBuffer = BitArr!(for 24 * 3, in u8);
         let mut buffer = BitArray::<[u8; BUFFER_SIZE], Msb0>::new([0u8; BUFFER_SIZE]);
+        let zero = PulseCode::new(t_0h, t_0l);
         let one = PulseCode::new(t_1h, t_1l);
 
         let mut dest = buffer.as_mut_bitslice();
-        for _ in 0..24 {
+        for _ in 0..8 {
             dest[..one.len()].clone_from_bitslice(one.bits());
             dest = &mut dest[one.len()..]
+        }
+        for _ in 0..16 {
+            dest[..zero.len()].clone_from_bitslice(zero.bits());
+            dest = &mut dest[zero.len()..]
         }
         #[cfg(feature = "defmt")]
         defmt::info!("{}", buffer.as_raw_slice());
