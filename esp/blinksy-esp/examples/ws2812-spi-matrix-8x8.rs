@@ -23,6 +23,7 @@ use esp_hal::spi::master::Config;
 use esp_hal::spi::master::Spi;
 use esp_hal::{self as hal, delay::Delay};
 //use panic_rtt_target as _;
+use esp_hal::time::Rate;
 use panic_rtt_target as _;
 
 extern crate alloc;
@@ -71,7 +72,11 @@ fn main() -> ! {
     //     )
     // };
 
-    let spi = Spi::new(p.SPI2, Config::default()).unwrap();
+    let spi = Spi::new(
+        p.SPI2,
+        Config::default().with_frequency(Rate::from_khz(2500)),
+    )
+    .unwrap();
     let writer = SpiWriter { spi };
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()

@@ -1,6 +1,6 @@
 use bitvec::prelude::*;
 use embedded_hal::spi::SpiBus;
-use fugit::MegahertzU32;
+use fugit::KilohertzU32;
 use fugit::NanosDurationU32;
 
 use crate::driver::{ClocklessLed, ClocklessWriter};
@@ -18,7 +18,7 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
     ) -> Result<(), Self::Error> {
         // To start with let's assume the spi frequency is set to 3 Mhz. We need to calculate
         // the bit pattern to send to spi to make everything work
-        let freq = MegahertzU32::MHz(3);
+        let freq = KilohertzU32::kHz(2500);
         let clock_period: NanosDurationU32 = freq.into_duration();
         // Calculate the clock cycles for each required duration
         let t_0h = Led::T_0H / clock_period;
@@ -32,7 +32,7 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
 
         // Right now we're making this assumption
         assert_eq!(t_0h + t_0l, 3);
-        assert_eq!(t_reset, 150);
+        assert_eq!(t_reset, 125);
 
         // For the time being we're going to assume that the spi buffer is going to be big
         // enough. In reality, we will have to do some things to make sure that's true
@@ -49,9 +49,12 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
             t_reset
         );
 
+        defmt::info!("one period high: {} ns", (t_1h * clock_period).to_nanos());
+        defmt::info!("one period low: {} ns", (t_1l * clock_period).to_nanos());
+
         // Just to get started we'll just send 24 bits of one (2 high, followed by 1 low) to the LED
         // type SpiBuffer = BitArr!(for 24 * 3, in u8);
-        let mut buffer = bitarr![u8, Msb0; 0; 24 * 3 + 150];
+        let mut buffer = bitarr![u8, Msb0; 0; 24 * 3 + 125];
         let one = bitarr![u8, Msb0; 1, 1, 0];
         for v in buffer[0..24 * 3].chunks_exact_mut(3) {
             v.clone_from_bitslice(&one.as_bitslice()[0..3]);
