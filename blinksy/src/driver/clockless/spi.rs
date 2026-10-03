@@ -5,11 +5,6 @@ use fugit::NanosDurationU32;
 
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
-pub struct SpiWriter<S: SpiBus, const BUFFER_SIZE: usize> {
-    spi: S,
-    freq: HertzU32,
-}
-
 const fn t_0h<Led: ClocklessLed>(clock_period_ns: u32) -> u32 {
     Led::T_0H.to_nanos() / clock_period_ns
 }
@@ -63,6 +58,11 @@ impl PulseCode {
     fn len(&self) -> usize {
         self.len
     }
+}
+
+pub struct SpiWriter<S: SpiBus, const BUFFER_SIZE: usize> {
+    spi: S,
+    freq: HertzU32,
 }
 
 impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
