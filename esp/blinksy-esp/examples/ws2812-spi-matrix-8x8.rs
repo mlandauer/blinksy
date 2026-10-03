@@ -78,10 +78,10 @@ fn main() -> ! {
         .with_mosi(p.GPIO17);
     defmt::info!(
         "spi buffer size: {}",
-        blinksy::driver::spi::buffer_size::<Ws2812>(SPI_FREQ.as_hz())
+        blinksy::driver::spi::buffer_size::<Ws2812>(1, SPI_FREQ.as_hz())
     );
     let writer =
-        SpiWriter::<_, { blinksy::driver::spi::buffer_size::<Ws2812>(SPI_FREQ.as_hz()) }>::new(
+        SpiWriter::<_, { blinksy::driver::spi::buffer_size::<Ws2812>(1, SPI_FREQ.as_hz()) }>::new(
             spi,
             SPI_FREQ.as_hz(),
         );

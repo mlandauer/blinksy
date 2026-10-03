@@ -14,7 +14,7 @@ const fn t_0h<Led: ClocklessLed>(clock_period_ns: u32) -> u32 {
     Led::T_0H.to_nanos() / clock_period_ns
 }
 
-pub const fn buffer_size<Led: ClocklessLed>(freq_hz: u32) -> usize {
+pub const fn buffer_size<Led: ClocklessLed>(pixel_count: usize, freq_hz: u32) -> usize {
     let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
     let clock_period_ns = clock_period.to_nanos();
     // TODO: Use multiply instead of divide
@@ -32,7 +32,8 @@ pub const fn buffer_size<Led: ClocklessLed>(freq_hz: u32) -> usize {
     let t_max = if t0 > t1 { t0 } else { t1 };
     // let t_max = t0.max(t1);
 
-    let total_bits = 1 * u8::BITS as usize * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
+    let total_bits =
+        u8::BITS as usize * pixel_count * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
     total_bits.div_ceil(u8::BITS as usize)
 }
 
