@@ -72,11 +72,17 @@ impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
             freq: HertzU32::Hz(freq_hz),
         }
     }
+}
 
-    fn test_write<Led: ClocklessLed, const FRAME_BUFFER_SIZE: usize>(
+impl<S: SpiBus, Led: ClocklessLed, const BUFFER_SIZE: usize> ClocklessWriter<Led>
+    for SpiWriter<S, BUFFER_SIZE>
+{
+    type Error = S::Error;
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), S::Error> {
+    ) -> Result<(), Self::Error> {
         let clock_period: NanosDurationU32 = self.freq.into_duration();
 
         // // Calculate the clock cycles for each required duration
@@ -101,18 +107,5 @@ impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
             dest = &mut dest[zero.len()..]
         }
         self.spi.write(buffer.as_raw_slice())
-    }
-}
-
-impl<S: SpiBus, Led: ClocklessLed, const BUFFER_SIZE: usize> ClocklessWriter<Led>
-    for SpiWriter<S, BUFFER_SIZE>
-{
-    type Error = S::Error;
-
-    fn write<const FRAME_BUFFER_SIZE: usize>(
-        &mut self,
-        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), Self::Error> {
-        self.test_write::<Led, FRAME_BUFFER_SIZE>(frame)
     }
 }
