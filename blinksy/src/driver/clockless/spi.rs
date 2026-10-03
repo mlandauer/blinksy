@@ -6,7 +6,13 @@ use fugit::NanosDurationU32;
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
 pub struct SpiWriter<Spi: SpiBus> {
-    pub spi: Spi,
+    spi: Spi,
+}
+
+impl<Spi: SpiBus> SpiWriter<Spi> {
+    pub fn new(spi: Spi) -> Self {
+        Self { spi }
+    }
 }
 
 impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {

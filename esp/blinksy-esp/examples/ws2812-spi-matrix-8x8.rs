@@ -78,7 +78,7 @@ fn main() -> ! {
     )
     .unwrap()
     .with_mosi(p.GPIO17);
-    let writer = SpiWriter { spi };
+    let writer = SpiWriter::new(spi);
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()
         .with_writer(writer);
