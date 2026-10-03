@@ -18,11 +18,11 @@ pub const fn buffer_size<Led: ClocklessLed>(freq_hz: u32) -> usize {
     let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
     let clock_period_ns = clock_period.to_nanos();
     // TODO: Use multiply instead of divide
-    let t_0h = t_0h::<Led>(clock_period_ns);
-    let t_0l = Led::T_0L.to_nanos() / clock_period_ns;
-    let t_1h = Led::T_1H.to_nanos() / clock_period_ns;
-    let t_1l = Led::T_1L.to_nanos() / clock_period_ns;
-    let t_reset = Led::T_RESET.to_nanos() / clock_period_ns;
+    let t_0h = t_0h::<Led>(clock_period_ns) as usize;
+    let t_0l = (Led::T_0L.to_nanos() / clock_period_ns) as usize;
+    let t_1h = (Led::T_1H.to_nanos() / clock_period_ns) as usize;
+    let t_1l = (Led::T_1L.to_nanos() / clock_period_ns) as usize;
+    let t_reset = (Led::T_RESET.to_nanos() / clock_period_ns) as usize;
 
     // TODO: Check that resulting timings are within spec for the LED and error if not
     // The maximum length a bit could be
@@ -32,8 +32,8 @@ pub const fn buffer_size<Led: ClocklessLed>(freq_hz: u32) -> usize {
     let t_max = if t0 > t1 { t0 } else { t1 };
     // let t_max = t0.max(t1);
 
-    let total_bits = 24 * t_max + t_reset;
-    total_bits.div_ceil(8) as usize
+    let total_bits = 1 * 8 * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
+    total_bits.div_ceil(8)
 }
 
 struct PulseCode {
@@ -72,7 +72,10 @@ impl<S: SpiBus, const BUFFER_SIZE: usize> SpiWriter<S, BUFFER_SIZE> {
         }
     }
 
-    fn test_write<Led: ClocklessLed>(&mut self) -> Result<(), S::Error> {
+    fn test_write<Led: ClocklessLed, const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), S::Error> {
         let clock_period: NanosDurationU32 = self.freq.into_duration();
 
         // // Calculate the clock cycles for each required duration
@@ -107,8 +110,8 @@ impl<S: SpiBus, Led: ClocklessLed, const BUFFER_SIZE: usize> ClocklessWriter<Led
 
     fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
-        _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        self.test_write::<Led>()
+        self.test_write::<Led, FRAME_BUFFER_SIZE>(frame)
     }
 }
