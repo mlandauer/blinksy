@@ -1,17 +1,21 @@
 use bitvec::prelude::*;
 use embedded_hal::spi::SpiBus;
-use fugit::KilohertzU32;
+use fugit::HertzU32;
 use fugit::NanosDurationU32;
 
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
 pub struct SpiWriter<Spi: SpiBus> {
     spi: Spi,
+    freq: HertzU32,
 }
 
 impl<Spi: SpiBus> SpiWriter<Spi> {
-    pub fn new(spi: Spi) -> Self {
-        Self { spi }
+    pub fn new(spi: Spi, freq_hz: u32) -> Self {
+        Self {
+            spi,
+            freq: HertzU32::Hz(freq_hz),
+        }
     }
 }
 
@@ -22,10 +26,7 @@ impl<S: SpiBus, Led: ClocklessLed> ClocklessWriter<Led> for SpiWriter<S> {
         &mut self,
         _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        // To start with let's assume the spi frequency is set to 3 Mhz. We need to calculate
-        // the bit pattern to send to spi to make everything work
-        let freq = KilohertzU32::kHz(2500);
-        let clock_period: NanosDurationU32 = freq.into_duration();
+        let clock_period: NanosDurationU32 = self.freq.into_duration();
         // Calculate the clock cycles for each required duration
         let t_0h = Led::T_0H / clock_period;
         let t_0l = Led::T_0L / clock_period;
