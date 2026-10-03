@@ -1,6 +1,9 @@
 [target.xtensa-esp32-none-elf]
 runner = "espflash flash --monitor --chip esp32"
 
+[target.xtensa-esp32s3-none-elf]
+runner = "probe-rs run --chip=esp32s3 --preverify --always-print-stacktrace --no-location"
+
 [env]
 DEFMT_LOG="info"
 ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM="true"
@@ -9,11 +12,12 @@ ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM="true"
 rustflags = [
     # Required by esp-backtrace, but may negatively impact code performance
     "-C", "force-frame-pointers",
+    "-C", "link-arg=-Tdefmt.x",
     # Required by esp-hal
     "-C", "link-arg=-Tlinkall.x",
 ]
 
-target = "xtensa-esp32-none-elf"
+target = "xtensa-esp32s3-none-elf"
 
 [unstable]
 build-std = ["core", "alloc"]
