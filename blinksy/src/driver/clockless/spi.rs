@@ -64,6 +64,30 @@ impl PulseCode {
     }
 }
 
+struct Pulses {
+    zero: PulseCode,
+    one: PulseCode,
+}
+
+impl Pulses {
+    fn new<Led: ClocklessLed>(freq: HertzU32) -> Self {
+        let clock_period: NanosDurationU32 = freq.into_duration();
+
+        // // Calculate the clock cycles for each required duration
+        let t_0h = (Led::T_0H / clock_period) as usize;
+        let t_0l = (Led::T_0L / clock_period) as usize;
+        let t_1h = (Led::T_1H / clock_period) as usize;
+        let t_1l = (Led::T_1L / clock_period) as usize;
+
+        // TODO: Check that values are within tolerance. Otherwise return an error
+
+        Self {
+            zero: PulseCode::new(t_0h, t_0l),
+            one: PulseCode::new(t_1h, t_1l),
+        }
+    }
+}
+
 pub struct SpiWriter<Word, S, const BUFFER_SIZE: usize>
 where
     Word: Copy + 'static,
@@ -95,25 +119,14 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
         Led: ClocklessLed,
         Led::Word: BitView,
     {
-        let clock_period: NanosDurationU32 = self.freq.into_duration();
-
-        // // Calculate the clock cycles for each required duration
-        let t_0h = (Led::T_0H / clock_period) as usize;
-        let t_0l = (Led::T_0L / clock_period) as usize;
-        let t_1h = (Led::T_1H / clock_period) as usize;
-        let t_1l = (Led::T_1L / clock_period) as usize;
-
-        // TODO: Check that values are within tolerance. Otherwise return an error
+        let pulses = Pulses::new::<Led>(self.freq);
 
         let mut buffer = BitArray::<[Word; BUFFER_SIZE], Msb0>::ZERO;
-        let zero = PulseCode::new(t_0h, t_0l);
-        let one = PulseCode::new(t_1h, t_1l);
-
         let mut dest = buffer.as_mut_bitslice();
 
         for v in frame {
             for bit in v.view_bits::<Msb0>() {
-                let pattern = if *bit { &one } else { &zero };
+                let pattern = if *bit { &pulses.one } else { &pulses.zero };
                 dest[..pattern.len()].clone_from_bitslice(pattern.bits());
                 dest = &mut dest[pattern.len()..]
             }
