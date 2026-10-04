@@ -18,14 +18,16 @@ use blinksy::{
 };
 use blinksy_esp::time::elapsed;
 use esp_alloc as _;
-use esp_hal::main;
 use esp_hal::spi::master::Config;
 use esp_hal::spi::master::Spi;
 use esp_hal::{self as hal, delay::Delay};
 //use panic_rtt_target as _;
 use esp_hal::time::Rate;
-use esp_hal::Blocking;
 use panic_rtt_target as _;
+use esp_hal::Blocking;
+use embassy_executor::Spawner;
+use esp_hal::timer::timg::TimerGroup;
+use esp_hal::interrupt::software::SoftwareInterruptControl;
 
 extern crate alloc;
 
@@ -35,13 +37,17 @@ esp_bootloader_esp_idf::esp_app_desc!();
     clippy::large_stack_frames,
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
-#[main]
-fn main() -> ! {
+#[esp_rtos::main]
+async fn main(_spawner: Spawner) -> ! {
     rtt_target::rtt_init_defmt!();
 
     let cpu_clock = hal::clock::CpuClock::max();
     let config = hal::Config::default().with_cpu_clock(cpu_clock);
     let p = hal::init(config);
+
+    let sw_int = SoftwareInterruptControl::new(p.SW_INTERRUPT);
+    let timg0 = TimerGroup::new(p.TIMG0);
+    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
     layout2d!(
         Layout,
