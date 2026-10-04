@@ -9,10 +9,6 @@ use fugit::NanosDurationU32;
 
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
-const fn t_0h<Led: ClocklessLed>(clock_period_ns: u32) -> u32 {
-    Led::T_0H.to_nanos() / clock_period_ns
-}
-
 pub const fn buffer_size<Led: ClocklessLed, S, Word>(pixel_count: usize, freq_hz: u32) -> usize
 where
     S: SpiBus<Word>,
@@ -21,7 +17,7 @@ where
     let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
     let clock_period_ns = clock_period.to_nanos();
     // TODO: Use multiply instead of divide
-    let t_0h = t_0h::<Led>(clock_period_ns) as usize;
+    let t_0h = (Led::T_0H.to_nanos() / clock_period_ns) as usize;
     let t_0l = (Led::T_0L.to_nanos() / clock_period_ns) as usize;
     let t_1h = (Led::T_1H.to_nanos() / clock_period_ns) as usize;
     let t_1l = (Led::T_1L.to_nanos() / clock_period_ns) as usize;
