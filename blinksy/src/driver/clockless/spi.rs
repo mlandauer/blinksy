@@ -122,6 +122,8 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
                 dest = &mut dest[pattern.len()..]
             }
         }
+        // For the reset signal we're depending on the rest of the buffer which is full of zeros and
+        // should be the correct length
         self.spi.write(&buffer.into_inner())
     }
 }
