@@ -6,8 +6,22 @@ use core::{
 
 #[derive(Debug, PartialEq)]
 pub struct ToleratedValues<T> {
-    pub range: RangeInclusive<T>,
     pub ideal: T,
+    pub range: RangeInclusive<T>,
+}
+
+impl<T: Add<Output = T>> Add for ToleratedValues<T> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            range: RangeInclusive {
+                start: self.range.start + rhs.range.start,
+                last: self.range.last + rhs.range.last,
+            },
+            ideal: self.ideal + rhs.ideal,
+        }
+    }
 }
 
 impl<T> ToleratedValues<T>
@@ -49,5 +63,11 @@ mod test {
             ToleratedValues::new(8, 2),
             ToleratedValues::range(8, RangeInclusive::from(6..=10))
         );
+    }
+
+    #[test]
+    fn add() {
+        let r = ToleratedValues::new(8, 2) + ToleratedValues::new(2, 1);
+        assert_eq!(r, ToleratedValues::new(10, 3));
     }
 }
