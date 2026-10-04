@@ -51,6 +51,28 @@ fn max_error<Led: ClocklessLed>(clock_period: NanosDurationU32) -> NanosDuration
     error_0h.max(error_0l).max(error_1h).max(error_1l)
 }
 
+// Brute-force an "ideal" clock frequency to run the SPI bus at
+// Lower frequencies are better because they mean that we need fewer spi bits to
+// encode a single LED bit which means less processing and memory usage. However
+// lower frequencies increase the timing errors.
+// Each LED has a tolerance for timing variations. We take advantage of this to pick
+// the lowest clock frequency that gives us errors within our chosen target tolerance.
+pub fn ideal_spi_frequency<Led: ClocklessLed>(target_tolerance: NanosDurationU32) -> HertzU32 {
+    // There's going to be some smart ways of doing this but for the time being
+    // let's just do the simplest possible thing and explore a whole range of timings
+    // and see what works best.
+    let duty_cycle = (Led::T_0H + Led::T_0L).max(Led::T_1H + Led::T_1L);
+    let mut max_clock_period = NanosDurationU32::nanos(0);
+    for clock_period_ns in 1..duty_cycle.to_nanos() {
+        let clock_period = NanosDurationU32::nanos(clock_period_ns);
+        let error = max_error::<Led>(clock_period);
+        if error < target_tolerance && clock_period > max_clock_period {
+            max_clock_period = clock_period;
+        }
+    }
+    max_clock_period.into_rate()
+}
+
 struct PulseCode {
     // For the moment we're going to assume that we can fit a pulsecode inside one byte
     // TODO: Handle more general case
