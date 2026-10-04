@@ -65,13 +65,6 @@ async fn main(_spawner: Spawner) -> ! {
     let spi = Spi::new(p.SPI2, Config::default().with_frequency(SPI_FREQ))
         .unwrap()
         .with_mosi(p.GPIO17);
-    defmt::info!(
-        "spi buffer size: {}",
-        blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(
-            Layout::PIXEL_COUNT,
-            SPI_FREQ.as_hz()
-        )
-    );
     let writer = SpiWriter::<
         _,
         _,
