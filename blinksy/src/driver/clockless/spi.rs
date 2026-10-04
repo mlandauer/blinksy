@@ -94,18 +94,18 @@ where
     S: SpiBus<Word>,
 {
     spi: S,
-    freq: HertzU32,
+    pulses: Pulses,
     word: PhantomData<Word>,
 }
 
 impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
     SpiWriter<Word, S, BUFFER_SIZE>
 {
-    pub fn new(spi: S, freq_hz: u32) -> Self {
+    pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
         Self {
             spi,
-            freq: HertzU32::Hz(freq_hz),
             word: PhantomData,
+            pulses: Pulses::new::<Led>(HertzU32::Hz(freq_hz)),
         }
     }
 
@@ -119,14 +119,16 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
         Led: ClocklessLed,
         Led::Word: BitView,
     {
-        let pulses = Pulses::new::<Led>(self.freq);
-
         let mut buffer = BitArray::<[Word; BUFFER_SIZE], Msb0>::ZERO;
         let mut dest = buffer.as_mut_bitslice();
 
         for v in frame {
             for bit in v.view_bits::<Msb0>() {
-                let pattern = if *bit { &pulses.one } else { &pulses.zero };
+                let pattern = if *bit {
+                    &self.pulses.one
+                } else {
+                    &self.pulses.zero
+                };
                 dest[..pattern.len()].clone_from_bitslice(pattern.bits());
                 dest = &mut dest[pattern.len()..]
             }

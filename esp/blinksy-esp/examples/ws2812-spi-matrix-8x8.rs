@@ -81,7 +81,7 @@ async fn main(_spawner: Spawner) -> ! {
                 SPI_FREQ.as_hz(),
             )
         },
-    >::new(spi, SPI_FREQ.as_hz());
+    >::new::<Ws2812>(spi, SPI_FREQ.as_hz());
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()
         .with_writer(writer);
