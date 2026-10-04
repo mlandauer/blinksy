@@ -1,8 +1,10 @@
 use core::{
+    fmt::Debug,
     ops::{Add, Sub},
     range::RangeInclusive,
 };
 
+#[derive(Debug, PartialEq)]
 pub struct ToleratedValues<T> {
     pub range: RangeInclusive<T>,
     pub ideal: T,
@@ -43,7 +45,9 @@ mod test {
 
     #[test]
     fn ideal_value_and_tolerance() {
-        let a = ToleratedValues::new(8, 2);
-        assert_eq!(a.range, RangeInclusive::from(6..=10))
+        assert_eq!(
+            ToleratedValues::new(8, 2),
+            ToleratedValues::range(8, RangeInclusive::from(6..=10))
+        );
     }
 }
