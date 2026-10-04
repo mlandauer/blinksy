@@ -36,6 +36,10 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
+pub fn max_error_ns<Led: ClocklessLed>(freq_hz: u32) -> u32 {
+    max_error::<Led>(NanosDurationU32::Hz(freq_hz)).to_nanos()
+}
+
 fn max_error<Led: ClocklessLed>(clock_period: NanosDurationU32) -> NanosDurationU32 {
     // // Calculate the clock cycles for each required duration
     let t_0h = Led::T_0H / clock_period;
@@ -57,7 +61,7 @@ fn max_error<Led: ClocklessLed>(clock_period: NanosDurationU32) -> NanosDuration
 // lower frequencies increase the timing errors.
 // Each LED has a tolerance for timing variations. We take advantage of this to pick
 // the lowest clock frequency that gives us errors within our chosen target tolerance.
-pub fn ideal_spi_frequency<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
+pub fn ideal_spi_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
     // There's going to be some smart ways of doing this but for the time being
     // let's just do the simplest possible thing and explore a whole range of timings
     // and see what works best.
