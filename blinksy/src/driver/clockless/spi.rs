@@ -1,6 +1,7 @@
 use core::marker::PhantomData;
 
 use bitvec::prelude::*;
+use bitvec::view::BitView;
 use bitvec::view::BitViewSized;
 use embedded_hal::spi::SpiBus;
 use fugit::HertzU32;
@@ -90,12 +91,13 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
 
     fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
         &mut self,
-        _frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), S::Error>
     where
         Word: Copy + 'static,
         [Word; BUFFER_SIZE]: BitViewSized,
         Led: ClocklessLed,
+        Led::Word: BitView,
     {
         let clock_period: NanosDurationU32 = self.freq.into_duration();
 
@@ -112,13 +114,13 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
         let one = PulseCode::new(t_1h, t_1l);
 
         let mut dest = buffer.as_mut_bitslice();
-        for _ in 0..8 {
-            dest[..one.len()].clone_from_bitslice(one.bits());
-            dest = &mut dest[one.len()..]
-        }
-        for _ in 0..16 {
-            dest[..zero.len()].clone_from_bitslice(zero.bits());
-            dest = &mut dest[zero.len()..]
+
+        for v in frame {
+            for bit in v.view_bits::<Msb0>() {
+                let pattern = if *bit { &one } else { &zero };
+                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
+                dest = &mut dest[pattern.len()..]
+            }
         }
         self.spi.write(&buffer.into_inner())
     }
@@ -131,6 +133,7 @@ where
     S: SpiBus<Word>,
     [Word; BUFFER_SIZE]: BitViewSized,
     Led: ClocklessLed,
+    Led::Word: BitView,
 {
     type Error = S::Error;
 

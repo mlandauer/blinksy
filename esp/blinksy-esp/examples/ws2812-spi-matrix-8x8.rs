@@ -79,12 +79,20 @@ fn main() -> ! {
         .with_mosi(p.GPIO17);
     defmt::info!(
         "spi buffer size: {}",
-        blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(1, SPI_FREQ.as_hz())
+        blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(
+            Layout::PIXEL_COUNT,
+            SPI_FREQ.as_hz()
+        )
     );
     let writer = SpiWriter::<
         _,
         _,
-        { blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(1, SPI_FREQ.as_hz()) },
+        {
+            blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(
+                Layout::PIXEL_COUNT,
+                SPI_FREQ.as_hz(),
+            )
+        },
     >::new(spi, SPI_FREQ.as_hz());
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()
