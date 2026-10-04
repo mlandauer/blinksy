@@ -64,11 +64,11 @@ async fn main(_spawner: Spawner) -> ! {
     );
 
     // let's see what an ideal SPI frequency would be
-    let freq_hz = ideal_spi_frequency_hz::<Ws2812>(150);
-    let error_ns = max_error_ns::<Ws2812>(freq_hz);
-    defmt::info!("ideal freq: {} Hz, error: {} ns", freq_hz, error_ns);
+    const SPI_FREQ_HZ: u32 = ideal_spi_frequency_hz::<Ws2812>(150);
+    let error_ns = max_error_ns::<Ws2812>(SPI_FREQ_HZ);
+    defmt::info!("ideal freq: {} Hz, error: {} ns", SPI_FREQ_HZ, error_ns);
 
-    const SPI_FREQ: Rate = Rate::from_khz(2500);
+    const SPI_FREQ: Rate = Rate::from_hz(SPI_FREQ_HZ);
     let spi = Spi::new(p.SPI2, Config::default().with_frequency(SPI_FREQ))
         .unwrap()
         .with_mosi(p.GPIO17);

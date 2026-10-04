@@ -36,7 +36,7 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
-pub fn max_error_ns<Led: ClocklessLed>(freq_hz: u32) -> u32 {
+pub const fn max_error_ns<Led: ClocklessLed>(freq_hz: u32) -> u32 {
     max_error::<Led>(NanosDurationU32::Hz(freq_hz)).to_nanos()
 }
 
