@@ -57,10 +57,11 @@ fn max_error<Led: ClocklessLed>(clock_period: NanosDurationU32) -> NanosDuration
 // lower frequencies increase the timing errors.
 // Each LED has a tolerance for timing variations. We take advantage of this to pick
 // the lowest clock frequency that gives us errors within our chosen target tolerance.
-pub fn ideal_spi_frequency<Led: ClocklessLed>(target_tolerance: NanosDurationU32) -> HertzU32 {
+pub fn ideal_spi_frequency<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
     // There's going to be some smart ways of doing this but for the time being
     // let's just do the simplest possible thing and explore a whole range of timings
     // and see what works best.
+    let target_tolerance = NanosDurationU32::nanos(target_tolerance_ns);
     let duty_cycle = (Led::T_0H + Led::T_0L).max(Led::T_1H + Led::T_1L);
     let mut max_clock_period = NanosDurationU32::nanos(0);
     for clock_period_ns in 1..duty_cycle.to_nanos() {
@@ -70,7 +71,8 @@ pub fn ideal_spi_frequency<Led: ClocklessLed>(target_tolerance: NanosDurationU32
             max_clock_period = clock_period;
         }
     }
-    max_clock_period.into_rate()
+    let freq: HertzU32 = max_clock_period.into_rate();
+    freq.to_Hz()
 }
 
 struct PulseCode {
