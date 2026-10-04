@@ -40,19 +40,32 @@ pub fn max_error_ns<Led: ClocklessLed>(freq_hz: u32) -> u32 {
     max_error::<Led>(NanosDurationU32::Hz(freq_hz)).to_nanos()
 }
 
-fn max_error<Led: ClocklessLed>(clock_period: NanosDurationU32) -> NanosDurationU32 {
+const fn max_error<Led: ClocklessLed>(clock_period: NanosDurationU32) -> NanosDurationU32 {
     // // Calculate the clock cycles for each required duration
-    let t_0h = Led::T_0H / clock_period;
-    let t_0l = Led::T_0L / clock_period;
-    let t_1h = Led::T_1H / clock_period;
-    let t_1l = Led::T_1L / clock_period;
+    let t_0h = Led::T_0H.to_nanos() / clock_period.to_nanos();
+    let t_0l = Led::T_0L.to_nanos() / clock_period.to_nanos();
+    let t_1h = Led::T_1H.to_nanos() / clock_period.to_nanos();
+    let t_1l = Led::T_1L.to_nanos() / clock_period.to_nanos();
 
-    let error_0h = Led::T_0H - t_0h * clock_period;
-    let error_0l = Led::T_0L - t_0l * clock_period;
-    let error_1h = Led::T_1H - t_1h * clock_period;
-    let error_1l = Led::T_1L - t_1l * clock_period;
+    let error_0h_ns = Led::T_0H.to_nanos() - t_0h * clock_period.to_nanos();
+    let error_0l_ns = Led::T_0L.to_nanos() - t_0l * clock_period.to_nanos();
+    let error_1h_ns = Led::T_1H.to_nanos() - t_1h * clock_period.to_nanos();
+    let error_1l_ns = Led::T_1L.to_nanos() - t_1l * clock_period.to_nanos();
 
-    error_0h.max(error_0l).max(error_1h).max(error_1l)
+    let mut max_error_ns = 0;
+    if error_0h_ns > max_error_ns {
+        max_error_ns = error_0h_ns
+    };
+    if error_0l_ns > max_error_ns {
+        max_error_ns = error_0l_ns
+    };
+    if error_1h_ns > max_error_ns {
+        max_error_ns = error_1h_ns
+    };
+    if error_1l_ns > max_error_ns {
+        max_error_ns = error_1l_ns
+    };
+    NanosDurationU32::nanos(max_error_ns)
 }
 
 // Brute-force an "ideal" clock frequency to run the SPI bus at
@@ -61,18 +74,27 @@ fn max_error<Led: ClocklessLed>(clock_period: NanosDurationU32) -> NanosDuration
 // lower frequencies increase the timing errors.
 // Each LED has a tolerance for timing variations. We take advantage of this to pick
 // the lowest clock frequency that gives us errors within our chosen target tolerance.
-pub fn ideal_spi_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
+pub const fn ideal_spi_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
     // There's going to be some smart ways of doing this but for the time being
     // let's just do the simplest possible thing and explore a whole range of timings
     // and see what works best.
     let target_tolerance = NanosDurationU32::nanos(target_tolerance_ns);
-    let duty_cycle = (Led::T_0H + Led::T_0L).max(Led::T_1H + Led::T_1L);
+    let t0_ns = Led::T_0H.to_nanos() + Led::T_0L.to_nanos();
+    let t1_ns = Led::T_1H.to_nanos() + Led::T_1L.to_nanos();
+    let duty_cycle_ns = if t0_ns > t1_ns { t0_ns } else { t1_ns };
     let mut max_clock_period = NanosDurationU32::nanos(0);
-    for clock_period_ns in 1..duty_cycle.to_nanos() {
+    let mut clock_period_ns = 1;
+    loop {
         let clock_period = NanosDurationU32::nanos(clock_period_ns);
         let error = max_error::<Led>(clock_period);
-        if error < target_tolerance && clock_period > max_clock_period {
+        if error.to_nanos() < target_tolerance.to_nanos()
+            && clock_period.to_nanos() > max_clock_period.to_nanos()
+        {
             max_clock_period = clock_period;
+        }
+        clock_period_ns += 1;
+        if clock_period_ns >= duty_cycle_ns {
+            break;
         }
     }
     let freq: HertzU32 = max_clock_period.into_rate();
