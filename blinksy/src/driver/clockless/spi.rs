@@ -74,16 +74,26 @@ impl Pulses {
         let clock_period: NanosDurationU32 = freq.into_duration();
 
         // // Calculate the clock cycles for each required duration
-        let t_0h = (Led::T_0H / clock_period) as usize;
-        let t_0l = (Led::T_0L / clock_period) as usize;
-        let t_1h = (Led::T_1H / clock_period) as usize;
-        let t_1l = (Led::T_1L / clock_period) as usize;
+        let t_0h = Led::T_0H / clock_period;
+        let t_0l = Led::T_0L / clock_period;
+        let t_1h = Led::T_1H / clock_period;
+        let t_1l = Led::T_1L / clock_period;
+
+        let error_0h = Led::T_0H - t_0h * clock_period;
+        let error_0l = Led::T_0L - t_0l * clock_period;
+        let error_1h = Led::T_1H - t_1h * clock_period;
+        let error_1l = Led::T_1L - t_1l * clock_period;
+
+        let max_error = error_0h.max(error_0l).max(error_1h).max(error_1l);
+
+        #[cfg(feature = "defmt")]
+        defmt::info!("Max error: {}", max_error);
 
         // TODO: Check that values are within tolerance. Otherwise return an error
 
         Self {
-            zero: PulseCode::new(t_0h, t_0l),
-            one: PulseCode::new(t_1h, t_1l),
+            zero: PulseCode::new(t_0h as usize, t_0l as usize),
+            one: PulseCode::new(t_1h as usize, t_1l as usize),
         }
     }
 
