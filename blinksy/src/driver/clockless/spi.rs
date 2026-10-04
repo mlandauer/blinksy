@@ -122,9 +122,6 @@ impl Pulses {
         let t_1h = Led::T_1H / clock_period;
         let t_1l = Led::T_1L / clock_period;
 
-        #[cfg(feature = "defmt")]
-        defmt::info!("Max error: {}", max_error::<Led>(clock_period));
-
         // TODO: Check that values are within tolerance. Otherwise return an error
 
         Self {
