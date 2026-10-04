@@ -127,14 +127,6 @@ pub trait ClocklessLed {
     /// Different LED chipsets may expect data in different channel orders (e.g., RGB, GRB, RGBW).
     const LED_CHANNELS: LedChannels;
 
-    /// Calculates the total cycle time for a bit transmission.
-    ///
-    /// Returns the maximum of (T_0H + T_0L) and (T_1H + T_1L) to ensure
-    /// timing is correct regardless of bit value.
-    fn t_cycle() -> Nanoseconds {
-        (Self::T_0H + Self::T_0L).max(Self::T_1H + Self::T_1L)
-    }
-
     /// Encodes a buffer to represent the next frame update.
     ///
     /// This method:
