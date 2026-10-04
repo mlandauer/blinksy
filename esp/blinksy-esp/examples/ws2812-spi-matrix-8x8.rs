@@ -61,24 +61,6 @@ async fn main(_spawner: Spawner) -> ! {
         }]
     );
 
-    // let ws2812_driver = {
-    //     // Set this to the data pin your LED is connected to
-    //     let data_pin = p.GPIO17;
-    //     let rmt_clk_freq = hal::time::Rate::from_mhz(80);
-
-    //     let rmt = hal::rmt::Rmt::new(p.RMT, rmt_clk_freq).unwrap();
-    //     let rmt_channel = rmt.channel0;
-
-    //     ClocklessDriver::default().with_led::<Ws2812>().with_writer(
-    //         ClocklessRmtBuilder::default()
-    //             .with_rmt_buffer_size::<{ Layout::PIXEL_COUNT * 3 * 8 + 1 }>()
-    //             .with_led::<Ws2812>()
-    //             .with_channel(rmt_channel)
-    //             .with_pin(data_pin)
-    //             .build(),
-    //     )
-    // };
-
     const SPI_FREQ: Rate = Rate::from_khz(2500);
     let spi = Spi::new(p.SPI2, Config::default().with_frequency(SPI_FREQ))
         .unwrap()
