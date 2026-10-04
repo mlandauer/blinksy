@@ -86,6 +86,14 @@ impl Pulses {
             one: PulseCode::new(t_1h, t_1l),
         }
     }
+
+    fn get(&self, value: bool) -> &PulseCode {
+        if value {
+            &self.one
+        } else {
+            &self.zero
+        }
+    }
 }
 
 pub struct SpiWriter<Word, S, const BUFFER_SIZE: usize>
@@ -124,11 +132,7 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
 
         for v in frame {
             for bit in v.view_bits::<Msb0>() {
-                let pattern = if *bit {
-                    &self.pulses.one
-                } else {
-                    &self.pulses.zero
-                };
+                let pattern = self.pulses.get(*bit);
                 dest[..pattern.len()].clone_from_bitslice(pattern.bits());
                 dest = &mut dest[pattern.len()..]
             }
