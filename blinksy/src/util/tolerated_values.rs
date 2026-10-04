@@ -45,6 +45,10 @@ where
             },
         )
     }
+
+    pub fn within_tolerance(&self, value: T) -> bool {
+        self.range.contains(&value)
+    }
 }
 
 #[cfg(test)]
@@ -69,5 +73,12 @@ mod test {
     fn add() {
         let r = ToleratedValues::new(8, 2) + ToleratedValues::new(2, 1);
         assert_eq!(r, ToleratedValues::new(10, 3));
+    }
+
+    #[test]
+    fn test_within_tolerance() {
+        let a = ToleratedValues::new(12.0, 3.0);
+        assert!(a.within_tolerance(13.0));
+        assert!(!a.within_tolerance(8.0));
     }
 }
