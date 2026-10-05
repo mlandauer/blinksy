@@ -4,8 +4,6 @@ use bitvec::prelude::*;
 use bitvec::view::BitView;
 use bitvec::view::BitViewSized;
 use embedded_hal::spi::SpiBus;
-use fugit::HertzU32;
-use fugit::NanosDurationU32;
 
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
@@ -189,15 +187,11 @@ impl Pulses {
 }
 
 const fn freq_hz_to_duration_ns(freq_hz: u32) -> u32 {
-    let freq = HertzU32::Hz(freq_hz);
-    let clock_period: NanosDurationU32 = freq.into_duration();
-    clock_period.to_nanos()
+    1_000_000_000 / freq_hz
 }
 
 const fn duration_ns_to_freq_hz(duration_ns: u32) -> u32 {
-    let duration = NanosDurationU32::nanos(duration_ns);
-    let freq: HertzU32 = duration.into_rate();
-    freq.to_Hz()
+    1_000_000_000 / duration_ns
 }
 
 pub struct SpiWriter<Word, S, const BUFFER_SIZE: usize>
