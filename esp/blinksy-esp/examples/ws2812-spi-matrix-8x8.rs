@@ -30,6 +30,7 @@ use esp_hal::timer::timg::TimerGroup;
 use esp_hal::interrupt::software::SoftwareInterruptControl;
 use blinksy::driver::spi::ideal_spi_frequency_hz;
 use blinksy::driver::spi::max_error_ns_from_freq_hz;
+use blinksy::driver::spi::duty_cycle_bits_from_frequency_hz;
 
 extern crate alloc;
 
@@ -66,7 +67,8 @@ async fn main(_spawner: Spawner) -> ! {
     // let's see what an ideal SPI frequency would be
     const SPI_FREQ_HZ: u32 = ideal_spi_frequency_hz::<Ws2812>(150);
     let error_ns = max_error_ns_from_freq_hz::<Ws2812>(SPI_FREQ_HZ);
-    defmt::info!("ideal freq: {} Hz, error: {} ns", SPI_FREQ_HZ, error_ns);
+    let duty_cycle_bits = duty_cycle_bits_from_frequency_hz::<Ws2812>(SPI_FREQ_HZ);
+    defmt::info!("ideal freq: {} Hz, error: {} ns, duty cycle bits: {}", SPI_FREQ_HZ, error_ns, duty_cycle_bits);
 
     const SPI_FREQ: Rate = Rate::from_hz(SPI_FREQ_HZ);
     let spi = Spi::new(p.SPI2, Config::default().with_frequency(SPI_FREQ))
