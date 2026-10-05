@@ -7,7 +7,6 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use blinksy::driver::spi::SpiWriter;
 use blinksy::{
     driver::ClocklessDriver,
     layout::{Layout2d, Shape2d, Vec2},
@@ -20,11 +19,11 @@ use blinksy_esp::time::elapsed;
 use esp_alloc as _;
 use esp_hal::spi::master::Config;
 use esp_hal::spi::master::Spi;
-use esp_hal::{self as hal, delay::Delay};
+use esp_hal::{self as hal};
 //use panic_rtt_target as _;
 use esp_hal::time::Rate;
 use panic_rtt_target as _;
-use esp_hal::Blocking;
+use esp_hal::Async;
 use embassy_executor::Spawner;
 use esp_hal::timer::timg::TimerGroup;
 use blinksy::driver::spi::ideal_spi_frequency_hz;
@@ -32,6 +31,8 @@ use blinksy::driver::spi::max_error_ns_from_freq_hz;
 use blinksy::driver::spi::duty_cycle_bits_from_frequency_hz;
 use esp_hal::dma_tx_buffer;
 use esp_hal::dma_rx_buffer;
+use esp_hal::spi::master::SpiDma;
+use blinksy::driver::spi::SpiWriterAsync;
 
 extern crate alloc;
 
@@ -77,12 +78,13 @@ async fn main(_spawner: Spawner) -> ! {
         .unwrap()
         .with_mosi(p.GPIO17)
         .with_dma(p.DMA_CH0)
-        .with_buffers(dma_rx_buf, dma_tx_buf);
-    let writer = SpiWriter::<
+        .with_buffers(dma_rx_buf, dma_tx_buf)
+        .into_async();
+    let writer = SpiWriterAsync::<
         _,
         _,
         {
-            blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(
+            blinksy::driver::spi::buffer_size::<Ws2812, SpiDma<Async>, _>(
                 Layout::PIXEL_COUNT,
                 SPI_FREQ_HZ,
             )
@@ -92,7 +94,7 @@ async fn main(_spawner: Spawner) -> ! {
         .with_led::<Ws2812>()
         .with_writer(writer);
 
-    let mut control = ControlBuilder::new_2d()
+    let mut control = ControlBuilder::new_2d_async()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams {
             ..Default::default()
@@ -102,11 +104,8 @@ async fn main(_spawner: Spawner) -> ! {
         .build();
     control.set_brightness(0.1); // Set initial brightness (0.0 to 1.0)
 
-    let delay = Delay::new();
-
     loop {
         let elapsed_in_ms = elapsed().as_millis();
-        control.tick(elapsed_in_ms).unwrap();
-        delay.delay_millis(50);
+        control.tick(elapsed_in_ms).await.unwrap();
     }
 }

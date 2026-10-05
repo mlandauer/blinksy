@@ -4,7 +4,9 @@ use bitvec::prelude::*;
 use bitvec::view::BitView;
 use bitvec::view::BitViewSized;
 use embedded_hal::spi::SpiBus;
+use embedded_hal_async::spi::SpiBus as SpiBusAsync;
 
+use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
 struct Timing<Led: ClocklessLed> {
@@ -204,6 +206,16 @@ where
     word: PhantomData<Word>,
 }
 
+pub struct SpiWriterAsync<Word, S, const BUFFER_SIZE: usize>
+where
+    Word: Copy + 'static,
+    S: SpiBusAsync<Word>,
+{
+    spi: S,
+    pulses: Pulses,
+    word: PhantomData<Word>,
+}
+
 impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
     SpiWriter<Word, S, BUFFER_SIZE>
 {
@@ -241,6 +253,44 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
     }
 }
 
+// TODO: Extract common bits
+impl<Word: Copy + 'static, S: SpiBusAsync<Word>, const BUFFER_SIZE: usize>
+    SpiWriterAsync<Word, S, BUFFER_SIZE>
+{
+    pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
+        Self {
+            spi,
+            word: PhantomData,
+            pulses: Pulses::new::<Led>(freq_hz),
+        }
+    }
+
+    async fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), S::Error>
+    where
+        Word: Copy + 'static,
+        [Word; BUFFER_SIZE]: BitViewSized,
+        Led: ClocklessLed,
+        Led::Word: BitView,
+    {
+        let mut buffer = BitArray::<[Word; BUFFER_SIZE], Msb0>::ZERO;
+        let mut dest = buffer.as_mut_bitslice();
+
+        for v in frame {
+            for bit in v.view_bits::<Msb0>() {
+                let pattern = self.pulses.get(*bit);
+                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
+                dest = &mut dest[pattern.len()..]
+            }
+        }
+        // For the reset signal we're depending on the rest of the buffer which is full of zeros and
+        // should be the correct length
+        self.spi.write(&buffer.into_inner()).await
+    }
+}
+
 impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriter<Led>
     for SpiWriter<Word, S, BUFFER_SIZE>
 where
@@ -257,5 +307,24 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         self.write_impl::<Led, FRAME_BUFFER_SIZE>(frame)
+    }
+}
+
+impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriterAsync<Led>
+    for SpiWriterAsync<Word, S, BUFFER_SIZE>
+where
+    Word: Copy + 'static,
+    S: SpiBusAsync<Word>,
+    [Word; BUFFER_SIZE]: BitViewSized,
+    Led: ClocklessLed,
+    Led::Word: BitView,
+{
+    type Error = S::Error;
+
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.write_impl::<Led, FRAME_BUFFER_SIZE>(frame).await
     }
 }
