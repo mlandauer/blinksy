@@ -30,6 +30,8 @@ use esp_hal::timer::timg::TimerGroup;
 use blinksy::driver::spi::ideal_spi_frequency_hz;
 use blinksy::driver::spi::max_error_ns_from_freq_hz;
 use blinksy::driver::spi::duty_cycle_bits_from_frequency_hz;
+use esp_hal::dma_tx_buffer;
+use esp_hal::dma_rx_buffer;
 
 extern crate alloc;
 
@@ -62,6 +64,9 @@ async fn main(_spawner: Spawner) -> ! {
         }]
     );
 
+    let dma_rx_buf = dma_rx_buffer!(1024).unwrap();
+    let dma_tx_buf = dma_tx_buffer!(1024).unwrap();
+
     // let's see what an ideal SPI frequency would be
     const SPI_FREQ_HZ: u32 = ideal_spi_frequency_hz::<Ws2812>(150);
     let error_ns = max_error_ns_from_freq_hz::<Ws2812>(SPI_FREQ_HZ);
@@ -70,7 +75,9 @@ async fn main(_spawner: Spawner) -> ! {
 
     let spi = Spi::new(p.SPI2, Config::default().with_frequency(Rate::from_hz(SPI_FREQ_HZ)))
         .unwrap()
-        .with_mosi(p.GPIO17);
+        .with_mosi(p.GPIO17)
+        .with_dma(p.DMA_CH0)
+        .with_buffers(dma_rx_buf, dma_tx_buf);
     let writer = SpiWriter::<
         _,
         _,
