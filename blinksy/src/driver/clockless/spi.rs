@@ -178,18 +178,12 @@ struct Pulses {
 impl Pulses {
     fn new<Led: ClocklessLed>(freq: HertzU32) -> Self {
         let clock_period: NanosDurationU32 = freq.into_duration();
-
-        // // Calculate the clock cycles for each required duration
-        let t_0h = Led::T_0H / clock_period;
-        let t_0l = Led::T_0L / clock_period;
-        let t_1h = Led::T_1H / clock_period;
-        let t_1l = Led::T_1L / clock_period;
-
+        let timing = Timing::<Led>::new(clock_period.to_nanos());
         // TODO: Check that values are within tolerance. Otherwise return an error
 
         Self {
-            zero: PulseCode::new(t_0h as usize, t_0l as usize),
-            one: PulseCode::new(t_1h as usize, t_1l as usize),
+            zero: PulseCode::new(timing.t_0h as usize, timing.t_0l as usize),
+            one: PulseCode::new(timing.t_1h as usize, timing.t_1l as usize),
         }
     }
 
