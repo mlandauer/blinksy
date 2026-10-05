@@ -27,7 +27,6 @@ use panic_rtt_target as _;
 use esp_hal::Blocking;
 use embassy_executor::Spawner;
 use esp_hal::timer::timg::TimerGroup;
-use esp_hal::interrupt::software::SoftwareInterruptControl;
 use blinksy::driver::spi::ideal_spi_frequency_hz;
 use blinksy::driver::spi::max_error_ns_from_freq_hz;
 use blinksy::driver::spi::duty_cycle_bits_from_frequency_hz;
@@ -48,9 +47,8 @@ async fn main(_spawner: Spawner) -> ! {
     let config = hal::Config::default().with_cpu_clock(cpu_clock);
     let p = hal::init(config);
 
-    let sw_int = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     let timg0 = TimerGroup::new(p.TIMG0);
-    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+    esp_rtos::start(timg0.timer0, p.FROM_CPU_INTR0);
 
     layout2d!(
         Layout,
