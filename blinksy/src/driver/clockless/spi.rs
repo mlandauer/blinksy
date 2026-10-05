@@ -4,8 +4,10 @@ use bitvec::prelude::*;
 use bitvec::view::BitView;
 use bitvec::view::BitViewSized;
 use embedded_hal::spi::SpiBus;
+#[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
 
+#[cfg(feature = "async")]
 use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
@@ -206,6 +208,7 @@ where
     word: PhantomData<Word>,
 }
 
+#[cfg(feature = "async")]
 pub struct SpiWriterAsync<Word, S, const BUFFER_SIZE: usize>
 where
     Word: Copy + 'static,
@@ -254,6 +257,7 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
 }
 
 // TODO: Extract common bits
+#[cfg(feature = "async")]
 impl<Word: Copy + 'static, S: SpiBusAsync<Word>, const BUFFER_SIZE: usize>
     SpiWriterAsync<Word, S, BUFFER_SIZE>
 {
@@ -310,6 +314,7 @@ where
     }
 }
 
+#[cfg(feature = "async")]
 impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriterAsync<Led>
     for SpiWriterAsync<Word, S, BUFFER_SIZE>
 where
