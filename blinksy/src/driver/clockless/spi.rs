@@ -67,24 +67,12 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
-pub const fn duty_cycle_bits_from_frequency_hz<Led: ClocklessLed>(freq_hz: u32) -> usize {
+pub const fn duty_cycle_bits_from_frequency_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
     let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
     let clock_period_ns = clock_period.to_nanos();
 
-    let t_0h = (Led::T_0H.to_nanos() / clock_period_ns) as usize;
-    let t_0l = (Led::T_0L.to_nanos() / clock_period_ns) as usize;
-    let t_1h = (Led::T_1H.to_nanos() / clock_period_ns) as usize;
-    let t_1l = (Led::T_1L.to_nanos() / clock_period_ns) as usize;
-
-    // The maximum length a bit could be
-    let t0 = t_0h + t_0l;
-    let t1 = t_1h + t_1l;
-    // We can't yet use max in const function
-    if t0 > t1 {
-        t0
-    } else {
-        t1
-    }
+    let timing = Timing::new::<Led>(clock_period_ns);
+    timing.duty_cycle()
 }
 
 pub const fn max_error_ns_from_freq_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
