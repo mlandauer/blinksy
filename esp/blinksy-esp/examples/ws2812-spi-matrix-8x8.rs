@@ -68,8 +68,7 @@ async fn main(_spawner: Spawner) -> ! {
     let duty_cycle_bits = duty_cycle_bits_from_frequency_hz::<Ws2812>(SPI_FREQ_HZ);
     defmt::info!("ideal freq: {} Hz, error: {} ns, duty cycle bits: {}", SPI_FREQ_HZ, error_ns, duty_cycle_bits);
 
-    const SPI_FREQ: Rate = Rate::from_hz(SPI_FREQ_HZ);
-    let spi = Spi::new(p.SPI2, Config::default().with_frequency(SPI_FREQ))
+    let spi = Spi::new(p.SPI2, Config::default().with_frequency(Rate::from_hz(SPI_FREQ_HZ)))
         .unwrap()
         .with_mosi(p.GPIO17);
     let writer = SpiWriter::<
@@ -78,10 +77,10 @@ async fn main(_spawner: Spawner) -> ! {
         {
             blinksy::driver::spi::buffer_size::<Ws2812, Spi<Blocking>, _>(
                 Layout::PIXEL_COUNT,
-                SPI_FREQ.as_hz(),
+                SPI_FREQ_HZ,
             )
         },
-    >::new::<Ws2812>(spi, SPI_FREQ.as_hz());
+    >::new::<Ws2812>(spi, SPI_FREQ_HZ);
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()
         .with_writer(writer);
