@@ -9,6 +9,45 @@ use fugit::NanosDurationU32;
 
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
+struct Timing {
+    t_0h: u32,
+    t_0l: u32,
+    t_1h: u32,
+    t_1l: u32,
+    t_reset: u32,
+}
+
+impl Timing {
+    const fn new<Led: ClocklessLed>(clock_period_ns: u32) -> Self {
+        Self {
+            t_0h: Led::T_0H.to_nanos() / clock_period_ns,
+            t_0l: Led::T_0L.to_nanos() / clock_period_ns,
+            t_1h: Led::T_1H.to_nanos() / clock_period_ns,
+            t_1l: Led::T_1L.to_nanos() / clock_period_ns,
+            t_reset: Led::T_RESET.to_nanos() / clock_period_ns,
+        }
+    }
+
+    const fn t0(&self) -> u32 {
+        self.t_0h + self.t_0l
+    }
+
+    const fn t1(&self) -> u32 {
+        self.t_1h + self.t_1l
+    }
+
+    const fn duty_cycle(&self) -> u32 {
+        let t0 = self.t0();
+        let t1 = self.t1();
+        // We can't yet use max in const function
+        if t0 > t1 {
+            t0
+        } else {
+            t1
+        }
+    }
+}
+
 pub const fn buffer_size<Led: ClocklessLed, S, Word>(pixel_count: usize, freq_hz: u32) -> usize
 where
     S: SpiBus<Word>,
@@ -16,23 +55,15 @@ where
 {
     let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
     let clock_period_ns = clock_period.to_nanos();
-    // TODO: Use multiply instead of divide
-    let t_0h = (Led::T_0H.to_nanos() / clock_period_ns) as usize;
-    let t_0l = (Led::T_0L.to_nanos() / clock_period_ns) as usize;
-    let t_1h = (Led::T_1H.to_nanos() / clock_period_ns) as usize;
-    let t_1l = (Led::T_1L.to_nanos() / clock_period_ns) as usize;
-    let t_reset = (Led::T_RESET.to_nanos() / clock_period_ns) as usize;
+    let timing = Timing::new::<Led>(clock_period_ns);
 
     // TODO: Check that resulting timings are within spec for the LED and error if not
-    // The maximum length a bit could be
-    let t0 = t_0h + t_0l;
-    let t1 = t_1h + t_1l;
-    // We can't yet use max in const function
-    let t_max = if t0 > t1 { t0 } else { t1 };
-    // let t_max = t0.max(t1);
     let spi_word_bits = size_of::<Word>() * 8;
-    let total_bits =
-        spi_word_bits * pixel_count * Led::LED_CHANNELS.channel_count() * t_max + t_reset;
+    let total_bits = spi_word_bits
+        * pixel_count
+        * Led::LED_CHANNELS.channel_count()
+        * timing.duty_cycle() as usize
+        + timing.t_reset as usize;
     total_bits.div_ceil(spi_word_bits)
 }
 
