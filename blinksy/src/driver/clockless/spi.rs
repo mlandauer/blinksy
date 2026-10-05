@@ -79,8 +79,7 @@ where
     S: SpiBus<Word>,
     Word: Copy + 'static,
 {
-    let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
-    let clock_period_ns = clock_period.to_nanos();
+    let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
     let timing = Timing::<Led>::new(clock_period_ns);
 
     // TODO: Check that resulting timings are within spec for the LED and error if not
@@ -94,15 +93,13 @@ where
 }
 
 pub const fn duty_cycle_bits_from_frequency_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
-    let clock_period: NanosDurationU32 = HertzU32::Hz(freq_hz).into_duration();
-    let clock_period_ns = clock_period.to_nanos();
-
+    let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
     let timing = Timing::<Led>::new(clock_period_ns);
     timing.duty_cycle()
 }
 
 pub const fn max_error_ns_from_freq_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
-    let clock_period_ns = NanosDurationU32::Hz(freq_hz).to_nanos();
+    let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
     max_error_ns_from_clock_period_ns::<Led>(clock_period_ns)
 }
 
@@ -124,7 +121,6 @@ pub const fn ideal_spi_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32)
     let t0_ns = Led::T_0H.to_nanos() + Led::T_0L.to_nanos();
     let t1_ns = Led::T_1H.to_nanos() + Led::T_1L.to_nanos();
     let duty_cycle_ns = if t0_ns > t1_ns { t0_ns } else { t1_ns };
-    // let mut max_clock_period = NanosDurationU32::nanos(0);
     let mut max_clock_period_ns = 0;
     let mut clock_period_ns = 1;
     loop {
@@ -137,9 +133,7 @@ pub const fn ideal_spi_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32)
             break;
         }
     }
-    let max_clock_period = NanosDurationU32::nanos(max_clock_period_ns);
-    let freq: HertzU32 = max_clock_period.into_rate();
-    freq.to_Hz()
+    duration_ns_to_freq_hz(max_clock_period_ns)
 }
 
 struct PulseCode {
@@ -176,11 +170,9 @@ struct Pulses {
 }
 
 impl Pulses {
-    fn new<Led: ClocklessLed>(freq: HertzU32) -> Self {
-        let clock_period: NanosDurationU32 = freq.into_duration();
-        let timing = Timing::<Led>::new(clock_period.to_nanos());
-        // TODO: Check that values are within tolerance. Otherwise return an error
-
+    fn new<Led: ClocklessLed>(freq_hz: u32) -> Self {
+        let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
+        let timing = Timing::<Led>::new(clock_period_ns);
         Self {
             zero: PulseCode::new(timing.t_0h as usize, timing.t_0l as usize),
             one: PulseCode::new(timing.t_1h as usize, timing.t_1l as usize),
@@ -194,6 +186,18 @@ impl Pulses {
             &self.zero
         }
     }
+}
+
+const fn freq_hz_to_duration_ns(freq_hz: u32) -> u32 {
+    let freq = HertzU32::Hz(freq_hz);
+    let clock_period: NanosDurationU32 = freq.into_duration();
+    clock_period.to_nanos()
+}
+
+const fn duration_ns_to_freq_hz(duration_ns: u32) -> u32 {
+    let duration = NanosDurationU32::nanos(duration_ns);
+    let freq: HertzU32 = duration.into_rate();
+    freq.to_Hz()
 }
 
 pub struct SpiWriter<Word, S, const BUFFER_SIZE: usize>
@@ -213,7 +217,7 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
         Self {
             spi,
             word: PhantomData,
-            pulses: Pulses::new::<Led>(HertzU32::Hz(freq_hz)),
+            pulses: Pulses::new::<Led>(freq_hz),
         }
     }
 
