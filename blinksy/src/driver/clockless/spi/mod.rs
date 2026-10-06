@@ -68,10 +68,9 @@ where
     Spi: SpiBus<SpiWord>,
     SpiWord: Copy + 'static,
 {
-    freq_hz: u32,
     spi: Spi,
+    timing: encoding::Timing<Led>,
     pulses: encoding::Pulses,
-    _led: PhantomData<Led>,
     _spi_word: PhantomData<SpiWord>,
 }
 
@@ -82,10 +81,9 @@ where
     Spi: SpiBusAsync<SpiWord>,
     SpiWord: Copy + 'static,
 {
-    freq_hz: u32,
     spi: Spi,
+    timing: encoding::Timing<Led>,
     pulses: encoding::Pulses,
-    _led: PhantomData<Led>,
     _spi_word: PhantomData<SpiWord>,
 }
 
@@ -97,22 +95,19 @@ where
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
         Self {
-            freq_hz,
             spi,
+            timing: encoding::Timing::new(encoding::freq_hz_to_duration_ns(freq_hz)),
             pulses: encoding::Pulses::new::<Led>(freq_hz),
-            _led: PhantomData,
             _spi_word: PhantomData,
         }
     }
 
     pub fn max_error_ns(&self) -> u32 {
-        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
-        encoding::Timing::<Led>::new(clock_period_ns).max_error_ns()
+        self.timing.max_error_ns()
     }
 
     pub fn duty_cycle_bits(&self) -> u32 {
-        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
-        encoding::Timing::<Led>::new(clock_period_ns).duty_cycle()
+        self.timing.duty_cycle()
     }
 
     fn write_impl<const FRAME_BUFFER_SIZE: usize>(
@@ -151,22 +146,19 @@ where
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
         Self {
-            freq_hz,
             spi,
+            timing: encoding::Timing::new(encoding::freq_hz_to_duration_ns(freq_hz)),
             pulses: encoding::Pulses::new::<Led>(freq_hz),
-            _led: PhantomData,
             _spi_word: PhantomData,
         }
     }
 
     pub fn max_error_ns(&self) -> u32 {
-        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
-        encoding::Timing::<Led>::new(clock_period_ns).max_error_ns()
+        self.timing.max_error_ns()
     }
 
     pub fn duty_cycle_bits(&self) -> u32 {
-        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
-        encoding::Timing::<Led>::new(clock_period_ns).duty_cycle()
+        self.timing.duty_cycle()
     }
 
     async fn write_impl<const FRAME_BUFFER_SIZE: usize>(
