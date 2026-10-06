@@ -94,10 +94,11 @@ where
     SpiWord: Copy + 'static,
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
+        let timing = encoding::Timing::new(encoding::freq_hz_to_duration_ns(freq_hz));
         Self {
             spi,
-            timing: encoding::Timing::new(encoding::freq_hz_to_duration_ns(freq_hz)),
-            pulses: encoding::Pulses::new::<Led>(freq_hz),
+            pulses: encoding::Pulses::new(&timing),
+            timing,
             _spi_word: PhantomData,
         }
     }
@@ -145,10 +146,11 @@ where
     Spi: SpiBusAsync<SpiWord>,
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
+        let timing = encoding::Timing::new(encoding::freq_hz_to_duration_ns(freq_hz));
         Self {
             spi,
-            timing: encoding::Timing::new(encoding::freq_hz_to_duration_ns(freq_hz)),
-            pulses: encoding::Pulses::new::<Led>(freq_hz),
+            pulses: encoding::Pulses::new::<Led>(&timing),
+            timing,
             _spi_word: PhantomData,
         }
     }

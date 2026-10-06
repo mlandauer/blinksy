@@ -109,9 +109,7 @@ pub struct Pulses {
 }
 
 impl Pulses {
-    pub fn new<Led: ClocklessLed>(freq_hz: u32) -> Self {
-        let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
-        let timing = Timing::<Led>::new(clock_period_ns);
+    pub fn new<Led: ClocklessLed>(timing: &Timing<Led>) -> Pulses {
         Self {
             zero: PulseCode::new(timing.t_0h as usize, timing.t_0l as usize),
             one: PulseCode::new(timing.t_1h as usize, timing.t_1l as usize),
