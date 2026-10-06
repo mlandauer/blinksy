@@ -224,8 +224,10 @@ where
     word: PhantomData<Word>,
 }
 
-impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
-    ClocklessSpi<Word, S, BUFFER_SIZE>
+impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpi<Word, S, BUFFER_SIZE>
+where
+    Word: Copy + 'static,
+    S: SpiBus<Word>,
 {
     pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
         Self {
@@ -273,8 +275,10 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
 
 // TODO: Extract common bits
 #[cfg(feature = "async")]
-impl<Word: Copy + 'static, S: SpiBusAsync<Word>, const BUFFER_SIZE: usize>
-    ClocklessSpiAsync<Word, S, BUFFER_SIZE>
+impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpiAsync<Word, S, BUFFER_SIZE>
+where
+    Word: Copy + 'static,
+    S: SpiBusAsync<Word>,
 {
     pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
         Self {
