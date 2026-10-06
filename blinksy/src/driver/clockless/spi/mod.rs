@@ -34,22 +34,6 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
-const fn duty_cycle_bits_from_frequency_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
-    let clock_period_ns = encoding::freq_hz_to_duration_ns(freq_hz);
-    let timing = encoding::Timing::<Led>::new(clock_period_ns);
-    timing.duty_cycle()
-}
-
-const fn max_error_ns_from_freq_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
-    let clock_period_ns = encoding::freq_hz_to_duration_ns(freq_hz);
-    max_error_ns_from_clock_period_ns::<Led>(clock_period_ns)
-}
-
-const fn max_error_ns_from_clock_period_ns<Led: ClocklessLed>(clock_period_ns: u32) -> u32 {
-    let timing = encoding::Timing::<Led>::new(clock_period_ns);
-    timing.max_error_ns()
-}
-
 // Brute-force an "ideal" clock frequency to run the SPI bus at
 // Lower frequencies are better because they mean that we need fewer spi bits to
 // encode a single LED bit which means less processing and memory usage. However
@@ -66,7 +50,7 @@ pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_toleranc
     let mut max_clock_period_ns = 0;
     let mut clock_period_ns = 1;
     loop {
-        let error_ns = max_error_ns_from_clock_period_ns::<Led>(clock_period_ns);
+        let error_ns = encoding::Timing::<Led>::new(clock_period_ns).max_error_ns();
         if error_ns < target_tolerance_ns && clock_period_ns > max_clock_period_ns {
             max_clock_period_ns = clock_period_ns;
         }
@@ -121,13 +105,14 @@ where
         }
     }
 
-    // TODO: Don't want to have to use Led here
     pub fn max_error_ns(&self) -> u32 {
-        max_error_ns_from_freq_hz::<Led>(self.freq_hz)
+        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
+        encoding::Timing::<Led>::new(clock_period_ns).max_error_ns()
     }
 
     pub fn duty_cycle_bits(&self) -> u32 {
-        duty_cycle_bits_from_frequency_hz::<Led>(self.freq_hz)
+        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
+        encoding::Timing::<Led>::new(clock_period_ns).duty_cycle()
     }
 
     fn write_impl<const FRAME_BUFFER_SIZE: usize>(
@@ -175,11 +160,13 @@ where
     }
 
     pub fn max_error_ns(&self) -> u32 {
-        max_error_ns_from_freq_hz::<Led>(self.freq_hz)
+        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
+        encoding::Timing::<Led>::new(clock_period_ns).max_error_ns()
     }
 
     pub fn duty_cycle_bits(&self) -> u32 {
-        duty_cycle_bits_from_frequency_hz::<Led>(self.freq_hz)
+        let clock_period_ns = encoding::freq_hz_to_duration_ns(self.freq_hz);
+        encoding::Timing::<Led>::new(clock_period_ns).duty_cycle()
     }
 
     async fn write_impl<const FRAME_BUFFER_SIZE: usize>(
