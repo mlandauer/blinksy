@@ -35,6 +35,19 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
+pub const fn clockless_spi_pulse_size<Led: ClocklessLed, S, Word>(freq_hz: u32) -> usize
+where
+    S: SpiBus<Word>,
+    Word: Copy + 'static,
+{
+    let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
+    let timing = Timing::<Led>::new(clock_period_ns);
+    let spi_word_bits = size_of::<Word>() * 8;
+
+    let total_bits = timing.duty_cycle_bits() as usize;
+    total_bits.div_ceil(spi_word_bits)
+}
+
 // Brute-force an "ideal" clock frequency to run the SPI bus at
 // Lower frequencies are better because they mean that we need fewer spi bits to
 // encode a single LED bit which means less processing and memory usage. However
@@ -67,11 +80,12 @@ fn encode_spi_buffer<
     Led: ClocklessLed,
     const FRAME_BUFFER_SIZE: usize,
     const SPI_BUFFER_SIZE: usize,
+    const N: usize,
     SpiWord,
 >(
     frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     buffer: &mut BitArray<[SpiWord; SPI_BUFFER_SIZE], Msb0>,
-    pulses: &Pulses,
+    pulses: &Pulses<N>,
 ) where
     [SpiWord; SPI_BUFFER_SIZE]: BitViewSized,
     Led::Word: BitView,
@@ -86,7 +100,7 @@ fn encode_spi_buffer<
     }
 }
 
-pub struct ClocklessSpi<const BUFFER_SIZE: usize, Led, Spi, SpiWord>
+pub struct ClocklessSpi<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
     Spi: SpiBus<SpiWord>,
@@ -94,12 +108,12 @@ where
 {
     spi: Spi,
     pub timing: Timing<Led>,
-    pulses: Pulses,
+    pulses: Pulses<PULSE_SIZE>,
     _spi_word: PhantomData<SpiWord>,
 }
 
 #[cfg(feature = "async")]
-pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, Led, Spi, SpiWord>
+pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
     Spi: SpiBusAsync<SpiWord>,
@@ -107,11 +121,12 @@ where
 {
     spi: Spi,
     pub timing: Timing<Led>,
-    pulses: Pulses,
+    pulses: Pulses<PULSE_SIZE>,
     _spi_word: PhantomData<SpiWord>,
 }
 
-impl<const BUFFER_SIZE: usize, Led, Spi, SpiWord> ClocklessSpi<BUFFER_SIZE, Led, Spi, SpiWord>
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
+    ClocklessSpi<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
     Spi: SpiBus<SpiWord>,
@@ -129,7 +144,8 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<const BUFFER_SIZE: usize, Led, Spi, SpiWord> ClocklessSpiAsync<BUFFER_SIZE, Led, Spi, SpiWord>
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
+    ClocklessSpiAsync<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
     SpiWord: Copy + 'static,
@@ -146,8 +162,8 @@ where
     }
 }
 
-impl<const BUFFER_SIZE: usize, Led, Spi, SpiWord> ClocklessWriter<Led>
-    for ClocklessSpi<BUFFER_SIZE, Led, Spi, SpiWord>
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord> ClocklessWriter<Led>
+    for ClocklessSpi<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
     Led::Word: BitView,
@@ -162,14 +178,14 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        encode_spi_buffer::<Led, _, _, _>(frame, &mut buffer, &self.pulses);
+        encode_spi_buffer::<Led, _, _, _, _>(frame, &mut buffer, &self.pulses);
         self.spi.write(&buffer.into_inner())
     }
 }
 
 #[cfg(feature = "async")]
-impl<const BUFFER_SIZE: usize, Led, Spi, SpiWord> ClocklessWriterAsync<Led>
-    for ClocklessSpiAsync<BUFFER_SIZE, Led, Spi, SpiWord>
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord> ClocklessWriterAsync<Led>
+    for ClocklessSpiAsync<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
     Led::Word: BitView,
@@ -184,7 +200,7 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        encode_spi_buffer::<Led, _, _, _>(frame, &mut buffer, &self.pulses);
+        encode_spi_buffer::<Led, _, _, _, _>(frame, &mut buffer, &self.pulses);
         self.spi.write(&buffer.into_inner()).await
     }
 }

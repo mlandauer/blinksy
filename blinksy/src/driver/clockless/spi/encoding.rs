@@ -75,16 +75,14 @@ impl<Led: ClocklessLed> Timing<Led> {
     }
 }
 
-pub struct PulseCode {
-    // For the moment we're going to assume that we can fit a pulsecode inside one byte
-    // TODO: Handle more general case
-    buffer: BitArray<[u8; 1], Msb0>,
+pub struct PulseCode<const N: usize> {
+    buffer: BitArray<[u8; N], Msb0>,
     len: usize,
 }
 
-impl PulseCode {
+impl<const N: usize> PulseCode<N> {
     pub fn new(high: usize, low: usize) -> Self {
-        let mut buffer = BitArray::new([0u8; 1]);
+        let mut buffer = BitArray::new([0u8; N]);
         for mut v in &mut buffer[..high] {
             v.set(true);
         }
@@ -103,20 +101,20 @@ impl PulseCode {
     }
 }
 
-pub struct Pulses {
-    zero: PulseCode,
-    one: PulseCode,
+pub struct Pulses<const N: usize> {
+    zero: PulseCode<N>,
+    one: PulseCode<N>,
 }
 
-impl Pulses {
-    pub fn new<Led: ClocklessLed>(timing: &Timing<Led>) -> Pulses {
+impl<const N: usize> Pulses<N> {
+    pub fn new<Led: ClocklessLed>(timing: &Timing<Led>) -> Pulses<N> {
         Self {
             zero: PulseCode::new(timing.t_0h as usize, timing.t_0l as usize),
             one: PulseCode::new(timing.t_1h as usize, timing.t_1l as usize),
         }
     }
 
-    pub fn get(&self, value: bool) -> &PulseCode {
+    pub fn get(&self, value: bool) -> &PulseCode<N> {
         if value {
             &self.one
         } else {

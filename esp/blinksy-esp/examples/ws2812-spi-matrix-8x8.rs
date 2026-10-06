@@ -9,7 +9,7 @@
 
 use blinksy::{
     driver::{
-        clockless_spi_buffer_size, clockless_spi_ideal_frequency_hz, ClocklessSpiAsync,
+        clockless_spi_buffer_size, clockless_spi_pulse_size, clockless_spi_ideal_frequency_hz, ClocklessSpiAsync,
         ClocklessDriver,
     },
     layout::{Layout2d, Shape2d, Vec2},
@@ -78,6 +78,7 @@ async fn main(_spawner: Spawner) -> ! {
     .into_async();
     let writer = ClocklessSpiAsync::<
         { clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) },
+        { clockless_spi_pulse_size::<Ws2812, SpiDma<Async>, _>(SPI_FREQ_HZ) },
         _,
         _,
         _,
