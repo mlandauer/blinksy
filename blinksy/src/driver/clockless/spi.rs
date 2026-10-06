@@ -103,7 +103,7 @@ pub const fn duty_cycle_bits_from_frequency_hz<Led: ClocklessLed>(freq_hz: u32) 
     timing.duty_cycle()
 }
 
-pub const fn max_error_ns_from_freq_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
+const fn max_error_ns_from_freq_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
     let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
     max_error_ns_from_clock_period_ns::<Led>(clock_period_ns)
 }
@@ -206,6 +206,7 @@ where
     Word: Copy + 'static,
     S: SpiBus<Word>,
 {
+    freq_hz: u32,
     spi: S,
     pulses: Pulses,
     word: PhantomData<Word>,
@@ -217,6 +218,7 @@ where
     Word: Copy + 'static,
     S: SpiBusAsync<Word>,
 {
+    freq_hz: u32,
     spi: S,
     pulses: Pulses,
     word: PhantomData<Word>,
@@ -227,10 +229,16 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
 {
     pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
         Self {
+            freq_hz,
             spi,
             word: PhantomData,
             pulses: Pulses::new::<Led>(freq_hz),
         }
+    }
+
+    // TODO: Don't want to have to use Led here
+    pub fn max_error_ns<Led: ClocklessLed>(&self) -> u32 {
+        max_error_ns_from_freq_hz::<Led>(self.freq_hz)
     }
 
     fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
@@ -266,10 +274,16 @@ impl<Word: Copy + 'static, S: SpiBusAsync<Word>, const BUFFER_SIZE: usize>
 {
     pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
         Self {
+            freq_hz,
             spi,
             word: PhantomData,
             pulses: Pulses::new::<Led>(freq_hz),
         }
+    }
+
+    // TODO: Don't want to have to use Led here
+    pub fn max_error_ns<Led: ClocklessLed>(&self) -> u32 {
+        max_error_ns_from_freq_hz::<Led>(self.freq_hz)
     }
 
     async fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
