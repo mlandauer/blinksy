@@ -111,31 +111,6 @@ where
     pub fn duty_cycle_bits(&self) -> u32 {
         self.timing.duty_cycle()
     }
-
-    fn write_impl<const FRAME_BUFFER_SIZE: usize>(
-        &mut self,
-        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), Spi::Error>
-    where
-        SpiWord: Copy + 'static,
-        [SpiWord; BUFFER_SIZE]: BitViewSized,
-        Led: ClocklessLed,
-        Led::Word: BitView,
-    {
-        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        let mut dest = buffer.as_mut_bitslice();
-
-        for v in frame {
-            for bit in v.view_bits::<Msb0>() {
-                let pattern = self.pulses.get(*bit);
-                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
-                dest = &mut dest[pattern.len()..]
-            }
-        }
-        // For the reset signal we're depending on the rest of the buffer which is full of zeros and
-        // should be the correct length
-        self.spi.write(&buffer.into_inner())
-    }
 }
 
 // TODO: Extract common bits
@@ -163,30 +138,6 @@ where
     pub fn duty_cycle_bits(&self) -> u32 {
         self.timing.duty_cycle()
     }
-
-    async fn write_impl<const FRAME_BUFFER_SIZE: usize>(
-        &mut self,
-        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), Spi::Error>
-    where
-        SpiWord: Copy + 'static,
-        [SpiWord; BUFFER_SIZE]: BitViewSized,
-        Led::Word: BitView,
-    {
-        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        let mut dest = buffer.as_mut_bitslice();
-
-        for v in frame {
-            for bit in v.view_bits::<Msb0>() {
-                let pattern = self.pulses.get(*bit);
-                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
-                dest = &mut dest[pattern.len()..]
-            }
-        }
-        // For the reset signal we're depending on the rest of the buffer which is full of zeros and
-        // should be the correct length
-        self.spi.write(&buffer.into_inner()).await
-    }
 }
 
 impl<const BUFFER_SIZE: usize, Led, Spi, SpiWord> ClocklessWriter<Led>
@@ -204,7 +155,16 @@ where
         &mut self,
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        self.write_impl::<FRAME_BUFFER_SIZE>(frame)
+        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
+        let mut dest = buffer.as_mut_bitslice();
+        for v in frame {
+            for bit in v.view_bits::<Msb0>() {
+                let pattern = self.pulses.get(*bit);
+                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
+                dest = &mut dest[pattern.len()..]
+            }
+        }
+        self.spi.write(&buffer.into_inner())
     }
 }
 
@@ -224,6 +184,15 @@ where
         &mut self,
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        self.write_impl::<FRAME_BUFFER_SIZE>(frame).await
+        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
+        let mut dest = buffer.as_mut_bitslice();
+        for v in frame {
+            for bit in v.view_bits::<Msb0>() {
+                let pattern = self.pulses.get(*bit);
+                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
+                dest = &mut dest[pattern.len()..]
+            }
+        }
+        self.spi.write(&buffer.into_inner()).await
     }
 }
