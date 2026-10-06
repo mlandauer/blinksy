@@ -11,7 +11,7 @@ use blinksy::{
     driver::{
         spi::{
             duty_cycle_bits_from_frequency_hz, ideal_spi_frequency_hz, max_error_ns_from_freq_hz,
-            SpiWriterAsync,
+            ClocklessSpiAsync,
         },
         ClocklessDriver,
     },
@@ -87,7 +87,7 @@ async fn main(_spawner: Spawner) -> ! {
     .with_dma(p.DMA_CH0)
     .with_buffers(dma_rx_buf, dma_tx_buf)
     .into_async();
-    let writer = SpiWriterAsync::<
+    let writer = ClocklessSpiAsync::<
         _,
         _,
         {
