@@ -201,35 +201,35 @@ const fn duration_ns_to_freq_hz(duration_ns: u32) -> u32 {
     1_000_000_000 / duration_ns
 }
 
-pub struct ClocklessSpi<const BUFFER_SIZE: usize, Word, S>
+pub struct ClocklessSpi<const BUFFER_SIZE: usize, Word, Spi>
 where
     Word: Copy + 'static,
-    S: SpiBus<Word>,
+    Spi: SpiBus<Word>,
 {
     freq_hz: u32,
-    spi: S,
+    spi: Spi,
     pulses: Pulses,
     word: PhantomData<Word>,
 }
 
 #[cfg(feature = "async")]
-pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, Word, S>
+pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, Word, Spi>
 where
     Word: Copy + 'static,
-    S: SpiBusAsync<Word>,
+    Spi: SpiBusAsync<Word>,
 {
     freq_hz: u32,
-    spi: S,
+    spi: Spi,
     pulses: Pulses,
     word: PhantomData<Word>,
 }
 
-impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpi<BUFFER_SIZE, Word, S>
+impl<Word, Spi, const BUFFER_SIZE: usize> ClocklessSpi<BUFFER_SIZE, Word, Spi>
 where
     Word: Copy + 'static,
-    S: SpiBus<Word>,
+    Spi: SpiBus<Word>,
 {
-    pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
+    pub fn new<Led: ClocklessLed>(spi: Spi, freq_hz: u32) -> Self {
         Self {
             freq_hz,
             spi,
@@ -250,7 +250,7 @@ where
     fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), S::Error>
+    ) -> Result<(), Spi::Error>
     where
         Word: Copy + 'static,
         [Word; BUFFER_SIZE]: BitViewSized,
@@ -275,12 +275,12 @@ where
 
 // TODO: Extract common bits
 #[cfg(feature = "async")]
-impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpiAsync<BUFFER_SIZE, Word, S>
+impl<Word, Spi, const BUFFER_SIZE: usize> ClocklessSpiAsync<BUFFER_SIZE, Word, Spi>
 where
     Word: Copy + 'static,
-    S: SpiBusAsync<Word>,
+    Spi: SpiBusAsync<Word>,
 {
-    pub fn new<Led: ClocklessLed>(spi: S, freq_hz: u32) -> Self {
+    pub fn new<Led: ClocklessLed>(spi: Spi, freq_hz: u32) -> Self {
         Self {
             freq_hz,
             spi,
@@ -301,7 +301,7 @@ where
     async fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), S::Error>
+    ) -> Result<(), Spi::Error>
     where
         Word: Copy + 'static,
         [Word; BUFFER_SIZE]: BitViewSized,
@@ -324,16 +324,16 @@ where
     }
 }
 
-impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriter<Led>
-    for ClocklessSpi<BUFFER_SIZE, Word, S>
+impl<Word, Spi, Led, const BUFFER_SIZE: usize> ClocklessWriter<Led>
+    for ClocklessSpi<BUFFER_SIZE, Word, Spi>
 where
     Word: Copy + 'static,
-    S: SpiBus<Word>,
+    Spi: SpiBus<Word>,
     [Word; BUFFER_SIZE]: BitViewSized,
     Led: ClocklessLed,
     Led::Word: BitView,
 {
-    type Error = S::Error;
+    type Error = Spi::Error;
 
     fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
@@ -344,16 +344,16 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriterAsync<Led>
-    for ClocklessSpiAsync<BUFFER_SIZE, Word, S>
+impl<Word, Spi, Led, const BUFFER_SIZE: usize> ClocklessWriterAsync<Led>
+    for ClocklessSpiAsync<BUFFER_SIZE, Word, Spi>
 where
     Word: Copy + 'static,
-    S: SpiBusAsync<Word>,
+    Spi: SpiBusAsync<Word>,
     [Word; BUFFER_SIZE]: BitViewSized,
     Led: ClocklessLed,
     Led::Word: BitView,
 {
-    type Error = S::Error;
+    type Error = Spi::Error;
 
     async fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
