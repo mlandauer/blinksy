@@ -10,8 +10,8 @@
 use blinksy::{
     driver::{
         spi::{
-            duty_cycle_bits_from_frequency_hz, ideal_spi_frequency_hz, max_error_ns_from_freq_hz,
-            ClocklessSpiAsync,
+            clockless_spi_buffer_size, duty_cycle_bits_from_frequency_hz, clockless_spi_ideal_frequency_hz,
+            max_error_ns_from_freq_hz, ClocklessSpiAsync,
         },
         ClocklessDriver,
     },
@@ -68,7 +68,7 @@ async fn main(_spawner: Spawner) -> ! {
     let dma_tx_buf = dma_tx_buffer!(1024).unwrap();
 
     // let's see what an ideal SPI frequency would be
-    const SPI_FREQ_HZ: u32 = ideal_spi_frequency_hz::<Ws2812>(150);
+    const SPI_FREQ_HZ: u32 = clockless_spi_ideal_frequency_hz::<Ws2812>(150);
     let error_ns = max_error_ns_from_freq_hz::<Ws2812>(SPI_FREQ_HZ);
     let duty_cycle_bits = duty_cycle_bits_from_frequency_hz::<Ws2812>(SPI_FREQ_HZ);
     defmt::info!(
@@ -90,12 +90,7 @@ async fn main(_spawner: Spawner) -> ! {
     let writer = ClocklessSpiAsync::<
         _,
         _,
-        {
-            blinksy::driver::spi::buffer_size::<Ws2812, SpiDma<Async>, _>(
-                Layout::PIXEL_COUNT,
-                SPI_FREQ_HZ,
-            )
-        },
+        { clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) },
     >::new::<Ws2812>(spi, SPI_FREQ_HZ);
     let driver = ClocklessDriver::default()
         .with_led::<Ws2812>()

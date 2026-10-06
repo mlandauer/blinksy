@@ -76,7 +76,10 @@ impl<Led: ClocklessLed> Timing<Led> {
     }
 }
 
-pub const fn buffer_size<Led: ClocklessLed, S, Word>(pixel_count: usize, freq_hz: u32) -> usize
+pub const fn clockless_spi_buffer_size<Led: ClocklessLed, S, Word>(
+    pixel_count: usize,
+    freq_hz: u32,
+) -> usize
 where
     S: SpiBus<Word>,
     Word: Copy + 'static,
@@ -116,7 +119,7 @@ const fn max_error_ns_from_clock_period_ns<Led: ClocklessLed>(clock_period_ns: u
 // lower frequencies increase the timing errors.
 // Each LED has a tolerance for timing variations. We take advantage of this to pick
 // the lowest clock frequency that gives us errors within our chosen target tolerance.
-pub const fn ideal_spi_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
+pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
     // There's going to be some smart ways of doing this but for the time being
     // let's just do the simplest possible thing and explore a whole range of timings
     // and see what works best.
