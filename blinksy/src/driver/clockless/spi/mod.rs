@@ -63,6 +63,29 @@ pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_toleranc
     duration_ns_to_freq_hz(max_clock_period_ns)
 }
 
+fn encode_spi_buffer<
+    Led: ClocklessLed,
+    const FRAME_BUFFER_SIZE: usize,
+    const SPI_BUFFER_SIZE: usize,
+    SpiWord,
+>(
+    frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    buffer: &mut BitArray<[SpiWord; SPI_BUFFER_SIZE], Msb0>,
+    pulses: &Pulses,
+) where
+    [SpiWord; SPI_BUFFER_SIZE]: BitViewSized,
+    Led::Word: BitView,
+{
+    let mut dest = buffer.as_mut_bitslice();
+    for v in frame {
+        for bit in v.view_bits::<Msb0>() {
+            let pattern = pulses.get(*bit);
+            dest[..pattern.len()].clone_from_bitslice(pattern.bits());
+            dest = &mut dest[pattern.len()..]
+        }
+    }
+}
+
 pub struct ClocklessSpi<const BUFFER_SIZE: usize, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
@@ -105,7 +128,6 @@ where
     }
 }
 
-// TODO: Extract common bits
 #[cfg(feature = "async")]
 impl<const BUFFER_SIZE: usize, Led, Spi, SpiWord> ClocklessSpiAsync<BUFFER_SIZE, Led, Spi, SpiWord>
 where
@@ -140,14 +162,7 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        let mut dest = buffer.as_mut_bitslice();
-        for v in frame {
-            for bit in v.view_bits::<Msb0>() {
-                let pattern = self.pulses.get(*bit);
-                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
-                dest = &mut dest[pattern.len()..]
-            }
-        }
+        encode_spi_buffer::<Led, _, _, _>(frame, &mut buffer, &self.pulses);
         self.spi.write(&buffer.into_inner())
     }
 }
@@ -169,14 +184,7 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        let mut dest = buffer.as_mut_bitslice();
-        for v in frame {
-            for bit in v.view_bits::<Msb0>() {
-                let pattern = self.pulses.get(*bit);
-                dest[..pattern.len()].clone_from_bitslice(pattern.bits());
-                dest = &mut dest[pattern.len()..]
-            }
-        }
+        encode_spi_buffer::<Led, _, _, _>(frame, &mut buffer, &self.pulses);
         self.spi.write(&buffer.into_inner()).await
     }
 }
