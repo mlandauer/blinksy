@@ -73,9 +73,10 @@ use crate::{
 };
 
 mod delay;
-pub mod spi;
+mod spi;
 
 pub use self::delay::*;
+pub use self::spi::*;
 
 /// Trait that defines the timing parameters and protocol specifics for a clockless LED chipset.
 ///

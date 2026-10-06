@@ -9,9 +9,7 @@
 
 use blinksy::{
     driver::{
-        spi::{
-            clockless_spi_buffer_size, clockless_spi_ideal_frequency_hz, ClocklessSpiAsync,
-        },
+        clockless_spi_buffer_size, clockless_spi_ideal_frequency_hz, ClocklessSpiAsync,
         ClocklessDriver,
     },
     layout::{Layout2d, Shape2d, Vec2},
