@@ -201,7 +201,7 @@ const fn duration_ns_to_freq_hz(duration_ns: u32) -> u32 {
     1_000_000_000 / duration_ns
 }
 
-pub struct ClocklessSpi<Word, S, const BUFFER_SIZE: usize>
+pub struct ClocklessSpi<const BUFFER_SIZE: usize, Word, S>
 where
     Word: Copy + 'static,
     S: SpiBus<Word>,
@@ -213,7 +213,7 @@ where
 }
 
 #[cfg(feature = "async")]
-pub struct ClocklessSpiAsync<Word, S, const BUFFER_SIZE: usize>
+pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, Word, S>
 where
     Word: Copy + 'static,
     S: SpiBusAsync<Word>,
@@ -224,7 +224,7 @@ where
     word: PhantomData<Word>,
 }
 
-impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpi<Word, S, BUFFER_SIZE>
+impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpi<BUFFER_SIZE, Word, S>
 where
     Word: Copy + 'static,
     S: SpiBus<Word>,
@@ -275,7 +275,7 @@ where
 
 // TODO: Extract common bits
 #[cfg(feature = "async")]
-impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpiAsync<Word, S, BUFFER_SIZE>
+impl<Word, S, const BUFFER_SIZE: usize> ClocklessSpiAsync<BUFFER_SIZE, Word, S>
 where
     Word: Copy + 'static,
     S: SpiBusAsync<Word>,
@@ -325,7 +325,7 @@ where
 }
 
 impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriter<Led>
-    for ClocklessSpi<Word, S, BUFFER_SIZE>
+    for ClocklessSpi<BUFFER_SIZE, Word, S>
 where
     Word: Copy + 'static,
     S: SpiBus<Word>,
@@ -345,7 +345,7 @@ where
 
 #[cfg(feature = "async")]
 impl<Word, S, Led, const BUFFER_SIZE: usize> ClocklessWriterAsync<Led>
-    for ClocklessSpiAsync<Word, S, BUFFER_SIZE>
+    for ClocklessSpiAsync<BUFFER_SIZE, Word, S>
 where
     Word: Copy + 'static,
     S: SpiBusAsync<Word>,

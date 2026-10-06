@@ -79,9 +79,9 @@ async fn main(_spawner: Spawner) -> ! {
     .with_buffers(dma_rx_buf, dma_tx_buf)
     .into_async();
     let writer = ClocklessSpiAsync::<
-        _,
-        _,
         { clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) },
+        _,
+        _,
     >::new::<Ws2812>(spi, SPI_FREQ_HZ);
 
     defmt::info!(
