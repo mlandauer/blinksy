@@ -82,13 +82,14 @@ async fn main(_spawner: Spawner) -> ! {
         { clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) },
         _,
         _,
-    >::new::<Ws2812>(spi, SPI_FREQ_HZ);
+        _,
+    >::new(spi, SPI_FREQ_HZ);
 
     defmt::info!(
         "ideal freq: {} Hz, error: {} ns, duty cycle bits: {}",
         SPI_FREQ_HZ,
-        writer.max_error_ns::<Ws2812>(),
-        writer.duty_cycle_bits::<Ws2812>()
+        writer.max_error_ns(),
+        writer.duty_cycle_bits()
     );
 
     let driver = ClocklessDriver::default()
