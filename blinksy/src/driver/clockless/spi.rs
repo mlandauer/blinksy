@@ -201,39 +201,39 @@ const fn duration_ns_to_freq_hz(duration_ns: u32) -> u32 {
     1_000_000_000 / duration_ns
 }
 
-pub struct ClocklessSpi<const BUFFER_SIZE: usize, Word, Spi>
+pub struct ClocklessSpi<const BUFFER_SIZE: usize, SpiWord, Spi>
 where
-    Word: Copy + 'static,
-    Spi: SpiBus<Word>,
+    SpiWord: Copy + 'static,
+    Spi: SpiBus<SpiWord>,
 {
     freq_hz: u32,
     spi: Spi,
     pulses: Pulses,
-    word: PhantomData<Word>,
+    _spi_word: PhantomData<SpiWord>,
 }
 
 #[cfg(feature = "async")]
-pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, Word, Spi>
+pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, SpiWord, Spi>
 where
-    Word: Copy + 'static,
-    Spi: SpiBusAsync<Word>,
+    SpiWord: Copy + 'static,
+    Spi: SpiBusAsync<SpiWord>,
 {
     freq_hz: u32,
     spi: Spi,
     pulses: Pulses,
-    word: PhantomData<Word>,
+    _spi_word: PhantomData<SpiWord>,
 }
 
-impl<Word, Spi, const BUFFER_SIZE: usize> ClocklessSpi<BUFFER_SIZE, Word, Spi>
+impl<SpiWord, Spi, const BUFFER_SIZE: usize> ClocklessSpi<BUFFER_SIZE, SpiWord, Spi>
 where
-    Word: Copy + 'static,
-    Spi: SpiBus<Word>,
+    SpiWord: Copy + 'static,
+    Spi: SpiBus<SpiWord>,
 {
     pub fn new<Led: ClocklessLed>(spi: Spi, freq_hz: u32) -> Self {
         Self {
             freq_hz,
             spi,
-            word: PhantomData,
+            _spi_word: PhantomData,
             pulses: Pulses::new::<Led>(freq_hz),
         }
     }
@@ -252,12 +252,12 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Spi::Error>
     where
-        Word: Copy + 'static,
-        [Word; BUFFER_SIZE]: BitViewSized,
+        SpiWord: Copy + 'static,
+        [SpiWord; BUFFER_SIZE]: BitViewSized,
         Led: ClocklessLed,
         Led::Word: BitView,
     {
-        let mut buffer = BitArray::<[Word; BUFFER_SIZE], Msb0>::ZERO;
+        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
         let mut dest = buffer.as_mut_bitslice();
 
         for v in frame {
@@ -275,17 +275,17 @@ where
 
 // TODO: Extract common bits
 #[cfg(feature = "async")]
-impl<Word, Spi, const BUFFER_SIZE: usize> ClocklessSpiAsync<BUFFER_SIZE, Word, Spi>
+impl<SpiWord, Spi, const BUFFER_SIZE: usize> ClocklessSpiAsync<BUFFER_SIZE, SpiWord, Spi>
 where
-    Word: Copy + 'static,
-    Spi: SpiBusAsync<Word>,
+    SpiWord: Copy + 'static,
+    Spi: SpiBusAsync<SpiWord>,
 {
     pub fn new<Led: ClocklessLed>(spi: Spi, freq_hz: u32) -> Self {
         Self {
             freq_hz,
             spi,
-            word: PhantomData,
             pulses: Pulses::new::<Led>(freq_hz),
+            _spi_word: PhantomData,
         }
     }
 
@@ -303,12 +303,12 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Spi::Error>
     where
-        Word: Copy + 'static,
-        [Word; BUFFER_SIZE]: BitViewSized,
+        SpiWord: Copy + 'static,
+        [SpiWord; BUFFER_SIZE]: BitViewSized,
         Led: ClocklessLed,
         Led::Word: BitView,
     {
-        let mut buffer = BitArray::<[Word; BUFFER_SIZE], Msb0>::ZERO;
+        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
         let mut dest = buffer.as_mut_bitslice();
 
         for v in frame {
@@ -324,12 +324,12 @@ where
     }
 }
 
-impl<Word, Spi, Led, const BUFFER_SIZE: usize> ClocklessWriter<Led>
-    for ClocklessSpi<BUFFER_SIZE, Word, Spi>
+impl<SpiWord, Spi, Led, const BUFFER_SIZE: usize> ClocklessWriter<Led>
+    for ClocklessSpi<BUFFER_SIZE, SpiWord, Spi>
 where
-    Word: Copy + 'static,
-    Spi: SpiBus<Word>,
-    [Word; BUFFER_SIZE]: BitViewSized,
+    SpiWord: Copy + 'static,
+    Spi: SpiBus<SpiWord>,
+    [SpiWord; BUFFER_SIZE]: BitViewSized,
     Led: ClocklessLed,
     Led::Word: BitView,
 {
@@ -344,12 +344,12 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<Word, Spi, Led, const BUFFER_SIZE: usize> ClocklessWriterAsync<Led>
-    for ClocklessSpiAsync<BUFFER_SIZE, Word, Spi>
+impl<SpiWord, Spi, Led, const BUFFER_SIZE: usize> ClocklessWriterAsync<Led>
+    for ClocklessSpiAsync<BUFFER_SIZE, SpiWord, Spi>
 where
-    Word: Copy + 'static,
-    Spi: SpiBusAsync<Word>,
-    [Word; BUFFER_SIZE]: BitViewSized,
+    SpiWord: Copy + 'static,
+    Spi: SpiBusAsync<SpiWord>,
+    [SpiWord; BUFFER_SIZE]: BitViewSized,
     Led: ClocklessLed,
     Led::Word: BitView,
 {
