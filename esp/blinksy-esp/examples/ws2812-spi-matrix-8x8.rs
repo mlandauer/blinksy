@@ -10,8 +10,8 @@
 use blinksy::{
     driver::{
         spi::{
-            clockless_spi_buffer_size, duty_cycle_bits_from_frequency_hz, clockless_spi_ideal_frequency_hz,
-            max_error_ns_from_freq_hz, ClocklessSpiAsync,
+            clockless_spi_buffer_size, clockless_spi_ideal_frequency_hz, ClocklessSpiAsync,
+            duty_cycle_bits_from_frequency_hz, max_error_ns_from_freq_hz,
         },
         ClocklessDriver,
     },
