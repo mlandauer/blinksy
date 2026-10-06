@@ -8,7 +8,13 @@
 #![deny(clippy::large_stack_frames)]
 
 use blinksy::{
-    driver::ClocklessDriver,
+    driver::{
+        spi::{
+            duty_cycle_bits_from_frequency_hz, ideal_spi_frequency_hz, max_error_ns_from_freq_hz,
+            SpiWriterAsync,
+        },
+        ClocklessDriver,
+    },
     layout::{Layout2d, Shape2d, Vec2},
     layout2d,
     leds::Ws2812,
@@ -16,23 +22,16 @@ use blinksy::{
     ControlBuilder,
 };
 use blinksy_esp::time::elapsed;
-use esp_alloc as _;
-use esp_hal::spi::master::Config;
-use esp_hal::spi::master::Spi;
-use esp_hal::{self as hal};
-//use panic_rtt_target as _;
-use esp_hal::time::Rate;
-use panic_rtt_target as _;
-use esp_hal::Async;
 use embassy_executor::Spawner;
-use esp_hal::timer::timg::TimerGroup;
-use blinksy::driver::spi::ideal_spi_frequency_hz;
-use blinksy::driver::spi::max_error_ns_from_freq_hz;
-use blinksy::driver::spi::duty_cycle_bits_from_frequency_hz;
-use esp_hal::dma_tx_buffer;
-use esp_hal::dma_rx_buffer;
-use esp_hal::spi::master::SpiDma;
-use blinksy::driver::spi::SpiWriterAsync;
+use esp_alloc as _;
+use esp_hal::{
+    dma_rx_buffer, dma_tx_buffer,
+    spi::master::{Config, Spi, SpiDma},
+    time::Rate,
+    timer::timg::TimerGroup,
+    Async,
+};
+use panic_rtt_target as _;
 
 extern crate alloc;
 
@@ -46,9 +45,9 @@ esp_bootloader_esp_idf::esp_app_desc!();
 async fn main(_spawner: Spawner) -> ! {
     rtt_target::rtt_init_defmt!();
 
-    let cpu_clock = hal::clock::CpuClock::max();
-    let config = hal::Config::default().with_cpu_clock(cpu_clock);
-    let p = hal::init(config);
+    let cpu_clock = esp_hal::clock::CpuClock::max();
+    let config = esp_hal::Config::default().with_cpu_clock(cpu_clock);
+    let p = esp_hal::init(config);
 
     let timg0 = TimerGroup::new(p.TIMG0);
     esp_rtos::start(timg0.timer0, p.FROM_CPU_INTR0);
@@ -72,14 +71,22 @@ async fn main(_spawner: Spawner) -> ! {
     const SPI_FREQ_HZ: u32 = ideal_spi_frequency_hz::<Ws2812>(150);
     let error_ns = max_error_ns_from_freq_hz::<Ws2812>(SPI_FREQ_HZ);
     let duty_cycle_bits = duty_cycle_bits_from_frequency_hz::<Ws2812>(SPI_FREQ_HZ);
-    defmt::info!("ideal freq: {} Hz, error: {} ns, duty cycle bits: {}", SPI_FREQ_HZ, error_ns, duty_cycle_bits);
+    defmt::info!(
+        "ideal freq: {} Hz, error: {} ns, duty cycle bits: {}",
+        SPI_FREQ_HZ,
+        error_ns,
+        duty_cycle_bits
+    );
 
-    let spi = Spi::new(p.SPI2, Config::default().with_frequency(Rate::from_hz(SPI_FREQ_HZ)))
-        .unwrap()
-        .with_mosi(p.GPIO17)
-        .with_dma(p.DMA_CH0)
-        .with_buffers(dma_rx_buf, dma_tx_buf)
-        .into_async();
+    let spi = Spi::new(
+        p.SPI2,
+        Config::default().with_frequency(Rate::from_hz(SPI_FREQ_HZ)),
+    )
+    .unwrap()
+    .with_mosi(p.GPIO17)
+    .with_dma(p.DMA_CH0)
+    .with_buffers(dma_rx_buf, dma_tx_buf)
+    .into_async();
     let writer = SpiWriterAsync::<
         _,
         _,
