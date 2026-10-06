@@ -11,7 +11,6 @@ use blinksy::{
     driver::{
         spi::{
             clockless_spi_buffer_size, clockless_spi_ideal_frequency_hz, ClocklessSpiAsync,
-            duty_cycle_bits_from_frequency_hz
         },
         ClocklessDriver,
     },
@@ -85,13 +84,11 @@ async fn main(_spawner: Spawner) -> ! {
         { clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) },
     >::new::<Ws2812>(spi, SPI_FREQ_HZ);
 
-    // let error_ns = max_error_ns_from_freq_hz::<Ws2812>(SPI_FREQ_HZ);
-    let duty_cycle_bits = duty_cycle_bits_from_frequency_hz::<Ws2812>(SPI_FREQ_HZ);
     defmt::info!(
         "ideal freq: {} Hz, error: {} ns, duty cycle bits: {}",
         SPI_FREQ_HZ,
         writer.max_error_ns::<Ws2812>(),
-        duty_cycle_bits
+        writer.duty_cycle_bits::<Ws2812>()
     );
 
     let driver = ClocklessDriver::default()

@@ -97,7 +97,7 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
-pub const fn duty_cycle_bits_from_frequency_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
+const fn duty_cycle_bits_from_frequency_hz<Led: ClocklessLed>(freq_hz: u32) -> u32 {
     let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
     let timing = Timing::<Led>::new(clock_period_ns);
     timing.duty_cycle()
@@ -241,6 +241,10 @@ impl<Word: Copy + 'static, S: SpiBus<Word>, const BUFFER_SIZE: usize>
         max_error_ns_from_freq_hz::<Led>(self.freq_hz)
     }
 
+    pub fn duty_cycle_bits<Led: ClocklessLed>(&self) -> u32 {
+        duty_cycle_bits_from_frequency_hz::<Led>(self.freq_hz)
+    }
+
     fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
@@ -284,6 +288,10 @@ impl<Word: Copy + 'static, S: SpiBusAsync<Word>, const BUFFER_SIZE: usize>
     // TODO: Don't want to have to use Led here
     pub fn max_error_ns<Led: ClocklessLed>(&self) -> u32 {
         max_error_ns_from_freq_hz::<Led>(self.freq_hz)
+    }
+
+    pub fn duty_cycle_bits<Led: ClocklessLed>(&self) -> u32 {
+        duty_cycle_bits_from_frequency_hz::<Led>(self.freq_hz)
     }
 
     async fn write_impl<Led, const FRAME_BUFFER_SIZE: usize>(
