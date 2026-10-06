@@ -41,7 +41,7 @@ impl<Led: ClocklessLed> Timing<Led> {
         self.t_1h + self.t_1l
     }
 
-    pub const fn duty_cycle(&self) -> u32 {
+    pub const fn duty_cycle_bits(&self) -> u32 {
         let t0 = self.t0();
         let t1 = self.t1();
         // We can't yet use max in const function

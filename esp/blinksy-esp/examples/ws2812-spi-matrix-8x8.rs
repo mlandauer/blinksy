@@ -86,8 +86,8 @@ async fn main(_spawner: Spawner) -> ! {
     defmt::info!(
         "ideal freq: {} Hz, error: {} ns, duty cycle bits: {}",
         SPI_FREQ_HZ,
-        writer.max_error_ns(),
-        writer.duty_cycle_bits()
+        writer.timing.max_error_ns(),
+        writer.timing.duty_cycle_bits()
     );
 
     let driver = ClocklessDriver::default()

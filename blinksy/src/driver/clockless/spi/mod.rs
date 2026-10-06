@@ -30,7 +30,7 @@ where
     let total_bits = spi_word_bits
         * pixel_count
         * Led::LED_CHANNELS.channel_count()
-        * timing.duty_cycle() as usize
+        * timing.duty_cycle_bits() as usize
         + timing.t_reset as usize;
     total_bits.div_ceil(spi_word_bits)
 }
@@ -70,7 +70,7 @@ where
     SpiWord: Copy + 'static,
 {
     spi: Spi,
-    timing: Timing<Led>,
+    pub timing: Timing<Led>,
     pulses: Pulses,
     _spi_word: PhantomData<SpiWord>,
 }
@@ -83,7 +83,7 @@ where
     SpiWord: Copy + 'static,
 {
     spi: Spi,
-    timing: Timing<Led>,
+    pub timing: Timing<Led>,
     pulses: Pulses,
     _spi_word: PhantomData<SpiWord>,
 }
@@ -103,14 +103,6 @@ where
             _spi_word: PhantomData,
         }
     }
-
-    pub fn max_error_ns(&self) -> u32 {
-        self.timing.max_error_ns()
-    }
-
-    pub fn duty_cycle_bits(&self) -> u32 {
-        self.timing.duty_cycle()
-    }
 }
 
 // TODO: Extract common bits
@@ -129,14 +121,6 @@ where
             timing,
             _spi_word: PhantomData,
         }
-    }
-
-    pub fn max_error_ns(&self) -> u32 {
-        self.timing.max_error_ns()
-    }
-
-    pub fn duty_cycle_bits(&self) -> u32 {
-        self.timing.duty_cycle()
     }
 }
 
