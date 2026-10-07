@@ -7,10 +7,11 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+use blinksy::driver::ClocklessSpiBuilder;
 use blinksy::{
     driver::{
-        clockless_spi_buffer_size, clockless_spi_pulse_size, clockless_spi_ideal_frequency_hz, ClocklessSpiAsync,
-        ClocklessDriver,
+        clockless_spi_buffer_size, clockless_spi_ideal_frequency_hz, clockless_spi_pulse_size,
+        ClocklessDriver, ClocklessSpi,
     },
     layout::{Layout2d, Shape2d, Vec2},
     layout2d,
@@ -74,9 +75,14 @@ async fn main(_spawner: Spawner) -> ! {
     .unwrap()
     .with_mosi(p.GPIO17)
     .with_dma(p.DMA_CH0)
-    .with_buffers(dma_rx_buf, dma_tx_buf)
-    .into_async();
-    let writer = ClocklessSpiAsync::<
+    .with_buffers(dma_rx_buf, dma_tx_buf);
+    // let writer = ClocklessSpiBuilder::default()
+    //    .with_spi(spi)
+    //    .with_freq_hz(SPI_FREQ_HZ)
+    //    .with_buffer_size::<{ clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) }>()
+    //    .with_pulse_size::<{ clockless_spi_pulse_size::<Ws2812, SpiDma<Async>, _>(SPI_FREQ_HZ) }>()
+    //    .build();
+    let writer = ClocklessSpi::<
         { clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) },
         { clockless_spi_pulse_size::<Ws2812, SpiDma<Async>, _>(SPI_FREQ_HZ) },
         _,
@@ -95,7 +101,7 @@ async fn main(_spawner: Spawner) -> ! {
         .with_led::<Ws2812>()
         .with_writer(writer);
 
-    let mut control = ControlBuilder::new_2d_async()
+    let mut control = ControlBuilder::new_2d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams {
             ..Default::default()
@@ -107,6 +113,6 @@ async fn main(_spawner: Spawner) -> ! {
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();
-        control.tick(elapsed_in_ms).await.unwrap();
+        control.tick(elapsed_in_ms).unwrap();
     }
 }

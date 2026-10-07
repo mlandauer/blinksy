@@ -7,6 +7,7 @@ use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
 
+use crate::driver::ClockedLed;
 #[cfg(feature = "async")]
 use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
@@ -97,6 +98,107 @@ fn encode_spi_buffer<
             dest[..pattern.len()].clone_from_bitslice(pattern.bits());
             dest = &mut dest[pattern.len()..]
         }
+    }
+}
+
+pub struct ClocklessSpiBuilder<
+    const BUFFER_SIZE: usize,
+    const PULSE_SIZE: usize,
+    Spi,
+    Led,
+    SpiWord,
+    Freq,
+> {
+    spi: Spi,
+    freq_hz: Freq,
+    _led: PhantomData<Led>,
+    _spi_word: PhantomData<SpiWord>,
+}
+
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord>
+    ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, ()>
+{
+    pub fn with_freq_hz(
+        self,
+        freq_hz: u32,
+    ) -> ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, u32> {
+        ClocklessSpiBuilder {
+            spi: self.spi,
+            freq_hz,
+            _led: self._led,
+            _spi_word: self._spi_word,
+        }
+    }
+}
+
+impl<const BUFFER_SIZE: usize, Spi, Led, SpiWord, Freq>
+    ClocklessSpiBuilder<BUFFER_SIZE, 0, Spi, Led, SpiWord, Freq>
+{
+    pub fn with_pulse_size<const PULSE_SIZE: usize>(
+        self,
+    ) -> ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, Freq> {
+        ClocklessSpiBuilder {
+            spi: self.spi,
+            freq_hz: self.freq_hz,
+            _led: self._led,
+            _spi_word: self._spi_word,
+        }
+    }
+}
+
+impl<const N: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord, Freq>
+    ClocklessSpiBuilder<N, PULSE_SIZE, Spi, Led, SpiWord, Freq>
+{
+    pub fn with_buffer_size<const BUFFER_SIZE: usize>(
+        self,
+    ) -> ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, Freq> {
+        ClocklessSpiBuilder {
+            spi: self.spi,
+            freq_hz: self.freq_hz,
+            _led: self._led,
+            _spi_word: self._spi_word,
+        }
+    }
+}
+
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, SpiWord, Freq>
+    ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, (), Led, SpiWord, Freq>
+{
+    pub fn with_spi<Spi>(
+        self,
+        spi: Spi,
+    ) -> ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, Freq> {
+        ClocklessSpiBuilder {
+            spi,
+            freq_hz: self.freq_hz,
+            _led: self._led,
+            _spi_word: self._spi_word,
+        }
+    }
+}
+
+impl<Led, SpiWord> Default for ClocklessSpiBuilder<0, 0, (), Led, SpiWord, ()> {
+    fn default() -> Self {
+        Self {
+            spi: (),
+            freq_hz: (),
+            _led: PhantomData,
+            _spi_word: PhantomData,
+        }
+    }
+}
+
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord>
+    ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, u32>
+where
+    Spi: SpiBus<SpiWord>,
+    SpiWord: Copy + 'static,
+    Led: ClocklessLed,
+{
+    pub fn build(self) -> ClocklessSpi<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord> {
+        assert!(BUFFER_SIZE > 0, "set buffer_size before calling build");
+        assert!(PULSE_SIZE > 0, "set pulse_size before calling build");
+        ClocklessSpi::new(self.spi, self.freq_hz)
     }
 }
 
