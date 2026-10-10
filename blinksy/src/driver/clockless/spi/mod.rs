@@ -28,9 +28,9 @@ pub use builder::ClocklessSpiBuilder;
 ///
 /// # Type Arguments
 ///
-/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// - `Spi` - The SPI driver you're using (must implement SpiBus)
-/// - `Word` - The word type of the Spi driver (should be able to be inferred from Spi)
+/// - `Led` - The LED protocol implementation (must implement [`ClocklessLed`])
+/// - `Spi` - The SPI driver you're using (must implement [`SpiBus`])
+/// - `Word` - The word type of the SPI driver (should be able to be inferred from `Spi`)
 ///
 /// # Arguments
 ///
@@ -71,9 +71,9 @@ where
 ///
 /// # Type Arguments
 ///
-/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// - `Spi` - The SPI driver you're using (must implement SpiBus)
-/// - `Word` - The word type of the Spi driver (should be able to be inferred from Spi)
+/// - `Led` - The LED protocol implementation (must implement [`ClocklessLed`])
+/// - `Spi` - The SPI driver you're using (must implement [`SpiBus`])
+/// - `Word` - The word type of the SPI driver (should be able to be inferred from `Spi`)
 ///
 /// # Arguments
 ///
@@ -104,7 +104,7 @@ where
 ///
 /// # Type Arguments
 ///
-/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// - `Led` - The LED protocol implementation (must implement [`ClocklessLed`])
 ///
 /// # Arguments
 ///

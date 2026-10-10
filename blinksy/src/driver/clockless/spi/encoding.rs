@@ -2,7 +2,7 @@ use crate::driver::ClocklessLed;
 use bitvec::{array::BitArray, order::Msb0, slice::BitSlice};
 use core::marker::PhantomData;
 
-/// Represents the timing (in number of SPI bits) to encode zero, one and reset LED signals
+/// Represents the timing (in number of SPI bits) to encode zero, one, and reset LED signals
 ///
 /// These timings are equivalent to those in [`ClocklessLed`] but converted to number of SPI bits for
 /// a particular SPI frequency.
