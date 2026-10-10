@@ -283,9 +283,9 @@ where
         &mut self,
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        encode_spi_buffer::<Led, _, _, _>(frame, &self.pulses, buffer.as_mut_bitslice());
-        self.spi.write(&buffer.into_inner())
+        let mut buffer = [SpiWord::ZERO; BUFFER_SIZE];
+        encode_spi_buffer::<Led, _, _>(&frame, &mut buffer, &self.pulses);
+        self.spi.write(&buffer)
     }
 }
 
@@ -304,21 +304,22 @@ where
         &mut self,
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
-        encode_spi_buffer::<Led, _, _, _>(frame, &self.pulses, buffer.as_mut_bitslice());
-        self.spi.write(&buffer.into_inner()).await
+        let mut buffer = [SpiWord::ZERO; BUFFER_SIZE];
+        encode_spi_buffer::<Led, _, _>(&frame, &mut buffer, &self.pulses);
+        self.spi.write(&buffer).await
     }
 }
 
-fn encode_spi_buffer<Led, const FRAME_BUFFER_SIZE: usize, const N: usize, SpiWord>(
-    frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+fn encode_spi_buffer<Led, const N: usize, SpiWord>(
+    frame: &[Led::Word],
+    buffer: &mut [SpiWord],
     pulses: &Pulses<N>,
-    mut dest: &mut BitSlice<SpiWord, Msb0>,
 ) where
-    SpiWord: BitStore,
     Led::Word: BitView,
     Led: ClocklessLed,
+    SpiWord: Copy + 'static + BitStore,
 {
+    let mut dest = buffer.view_bits_mut::<Msb0>();
     for v in frame {
         for bit in v.view_bits::<Msb0>() {
             let pattern = pulses.get(*bit);
