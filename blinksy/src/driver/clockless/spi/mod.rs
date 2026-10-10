@@ -10,6 +10,7 @@ use crate::driver::t_cycle;
 #[cfg(feature = "async")]
 use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
+use crate::util::bits::Word;
 
 mod encoding;
 pub use encoding::ClocklessSpiTiming;
@@ -51,13 +52,12 @@ where
     let timing = ClocklessSpiTiming::<Led>::new(clock_period_ns);
 
     // TODO: Check that resulting timings are within spec for the LED and error if not
-    let spi_word_bits = size_of::<Word>() * 8;
-    let total_bits = spi_word_bits
-        * pixel_count
+    let total_bits = Led::Word::BITS as usize
         * Led::LED_CHANNELS.channel_count()
+        * pixel_count
         * timing.duty_cycle_bits() as usize
         + timing.t_reset as usize;
-    total_bits.div_ceil(spi_word_bits)
+    total_bits.div_ceil(size_of::<Word>() * 8)
 }
 
 /// Calculates the size required for encoding one bit into the SPI buffer.

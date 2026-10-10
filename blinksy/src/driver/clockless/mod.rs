@@ -71,7 +71,7 @@ use crate::{
     color::{ColorCorrection, FromColor, LedChannels, LedColor, LinearSrgb},
     driver::Driver,
     time::Nanoseconds,
-    util::component::Component,
+    util::{bits::Word, component::Component},
 };
 
 mod delay;
@@ -105,7 +105,7 @@ pub use self::spi::*;
 /// ```
 pub trait ClocklessLed {
     /// The word type (typically u8).
-    type Word: Component;
+    type Word: Component + Word;
 
     /// Duration of high signal for transmitting a '0' bit.
     const T_0H: Nanoseconds;
