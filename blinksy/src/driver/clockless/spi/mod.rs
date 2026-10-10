@@ -2,7 +2,6 @@ use core::marker::PhantomData;
 
 use bitvec::prelude::*;
 use bitvec::view::BitView;
-use bitvec::view::BitViewSized;
 use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
@@ -276,8 +275,7 @@ where
     Led: ClocklessLed,
     Led::Word: BitView,
     Spi: SpiBus<SpiWord>,
-    SpiWord: Copy + 'static,
-    [SpiWord; BUFFER_SIZE]: BitViewSized,
+    SpiWord: Copy + 'static + BitStore,
 {
     type Error = Spi::Error;
 
@@ -298,8 +296,7 @@ where
     Led: ClocklessLed,
     Led::Word: BitView,
     Spi: SpiBusAsync<SpiWord>,
-    SpiWord: Copy + 'static,
-    [SpiWord; BUFFER_SIZE]: BitViewSized,
+    SpiWord: Copy + 'static + BitStore,
 {
     type Error = Spi::Error;
 
@@ -324,7 +321,7 @@ fn encode_spi_buffer<
     buffer: &mut BitArray<[SpiWord; SPI_BUFFER_SIZE], Msb0>,
     pulses: &Pulses<N>,
 ) where
-    [SpiWord; SPI_BUFFER_SIZE]: BitViewSized,
+    SpiWord: BitStore,
     Led::Word: BitView,
 {
     let mut dest = buffer.as_mut_bitslice();
