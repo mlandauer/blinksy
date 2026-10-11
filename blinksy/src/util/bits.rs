@@ -82,40 +82,40 @@ pub fn copy_bits_msb<W: Word>(src: &[W], len: usize, dst: &mut [W], dst_start: u
     let dst_first_index = dst_start / word_bits;
     let dst_shift = dst_start % word_bits;
 
-    for (i, &src_word) in src[..len.div_ceil(word_bits)].iter().enumerate() {
-        let dst_index = dst_first_index + i;
+    for (i, &input) in src[..len.div_ceil(word_bits)].iter().enumerate() {
         // Number of bits to copy in this word
         let count = (len - i * word_bits).min(word_bits);
-        // Selects the top `count` bits, which are the ones being copied
-        let mask = !W::ZERO << (word_bits - count);
-        let src_masked_word = src_word & mask;
-
         // The bits that fit into the current destination word
-        dst[dst_index] = (dst[dst_index] & !(mask >> dst_shift)) | (src_masked_word >> dst_shift);
-        // The bits that overflow into the next destination word
-        if dst_shift + count > word_bits {
-            let back = word_bits - dst_shift;
-            dst[dst_index + 1] = (dst[dst_index + 1] & !(mask << back)) | (src_masked_word << back);
+        copy_bits_in_word(input, &mut dst[dst_first_index + i], 0, dst_shift, count);
+        // If there wasn't enough room in the first word we overflow into the next
+        if word_bits - dst_shift < count {
+            copy_bits_in_word(
+                input,
+                &mut dst[dst_first_index + i + 1],
+                word_bits - dst_shift,
+                0,
+                count - (word_bits - dst_shift),
+            );
         }
     }
 }
 
 fn copy_bits_in_word<W: Word>(
-    src: W,
-    dst: &mut W,
-    src_offset: usize,
-    dst_offset: usize,
-    len: usize,
+    input: W,
+    output: &mut W,
+    input_offset: usize,
+    output_offset: usize,
+    length: usize,
 ) {
     let word_bits = W::BITS as usize;
 
-    let dst_mask = !W::ZERO << (word_bits - len) >> dst_offset;
-    let src_in_dst_position = if dst_offset > src_offset {
-        src >> (dst_offset - src_offset)
+    let output_mask = !W::ZERO << (word_bits - length) >> output_offset;
+    let input_in_output_position = if output_offset > input_offset {
+        input >> (output_offset - input_offset)
     } else {
-        src << (src_offset - dst_offset)
+        input << (input_offset - output_offset)
     };
-    *dst = (*dst & !dst_mask) | (src_in_dst_position & dst_mask);
+    *output = (*output & !output_mask) | (input_in_output_position & output_mask);
 }
 
 /// Appends bits to a slice of words, filling each word from its most significant bit
