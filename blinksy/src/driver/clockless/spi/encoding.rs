@@ -1,5 +1,5 @@
 use crate::driver::ClocklessLed;
-use crate::util::bits::{copy_bits_msb, BitSlice, Word};
+use crate::util::bits::{copy_bits_msb, BitSlice, BitSliceMut, Word};
 use core::marker::PhantomData;
 
 /// Represents the timing (in number of SPI bits) to encode zero, one, and reset LED signals
@@ -87,7 +87,19 @@ pub(crate) struct PulseCode<W, const N: usize> {
 impl<W: Word, const N: usize> PulseCode<W, N> {
     fn new(high: usize, low: usize) -> Self {
         let mut buffer = [W::ZERO; N];
-        copy_bits_msb(&[!W::ZERO; N], 0, high, &mut buffer, 0, high);
+        let high_bits = BitSlice {
+            buffer: &[!W::ZERO; N],
+            offset: 0,
+            length: high,
+        };
+        copy_bits_msb(
+            &high_bits,
+            &mut BitSliceMut {
+                buffer: &mut buffer,
+                offset: 0,
+                length: high_bits.length,
+            },
+        );
         Self {
             buffer,
             len: high + low,
