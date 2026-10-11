@@ -320,12 +320,7 @@ fn encode_spi_buffer<Led, const N: usize, SpiWord>(
     let mut writer = BitWriterMsb::new(buffer);
     for word in frame {
         for bit in word_to_bits_msb(*word) {
-            let pulse = pulses.get(bit);
-            writer.write_bits(BitSlice {
-                buffer: pulse.bits(),
-                offset: 0,
-                length: pulse.len(),
-            });
+            writer.write_bits(pulses.get(bit).bits());
         }
     }
 }
