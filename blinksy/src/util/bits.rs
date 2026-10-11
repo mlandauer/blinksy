@@ -118,6 +118,13 @@ fn copy_bits_in_word<W: Word>(
     *output = (*output & !output_mask) | (input_in_output_position & output_mask);
 }
 
+// Represents a view of the bits in a buffer
+pub struct BitSlice<'a, W: Word> {
+    pub buffer: &'a [W],
+    pub offset: usize,
+    pub length: usize,
+}
+
 /// Appends bits to a slice of words, filling each word from its most significant bit
 pub struct BitWriterMsb<'a, W: Word> {
     words: &'a mut [W],
@@ -129,10 +136,10 @@ impl<'a, W: Word> BitWriterMsb<'a, W> {
         Self { words, position: 0 }
     }
 
-    /// Appends the first `len` bits of `src`
-    pub fn write_bits(&mut self, src: &[W], len: usize) {
-        copy_bits_msb(src, len, self.words, self.position);
-        self.position += len;
+    pub fn write_bits(&mut self, slice: BitSlice<W>) {
+        assert_eq!(slice.offset, 0);
+        copy_bits_msb(slice.buffer, slice.length, self.words, self.position);
+        self.position += slice.length;
     }
 }
 

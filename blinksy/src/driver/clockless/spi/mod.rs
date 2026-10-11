@@ -8,7 +8,7 @@ use crate::driver::t_cycle;
 #[cfg(feature = "async")]
 use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
-use crate::util::bits::{word_to_bits_msb, BitWriterMsb, Word};
+use crate::util::bits::{word_to_bits_msb, BitSlice, BitWriterMsb, Word};
 
 mod encoding;
 pub use encoding::ClocklessSpiTiming;
@@ -321,7 +321,11 @@ fn encode_spi_buffer<Led, const N: usize, SpiWord>(
     for word in frame {
         for bit in word_to_bits_msb(*word) {
             let pulse = pulses.get(bit);
-            writer.write_bits(pulse.bits(), pulse.len());
+            writer.write_bits(BitSlice {
+                buffer: pulse.bits(),
+                offset: 0,
+                length: pulse.len(),
+            });
         }
     }
 }
