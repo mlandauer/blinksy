@@ -1,5 +1,5 @@
 use crate::driver::ClocklessLed;
-use bitvec::{array::BitArray, order::Msb0, slice::BitSlice};
+use crate::util::bits::{copy_bits_msb, Word};
 use core::marker::PhantomData;
 
 /// Represents the timing (in number of SPI bits) to encode zero, one, and reset LED signals
@@ -79,25 +79,23 @@ impl<Led: ClocklessLed> ClocklessSpiTiming<Led> {
     }
 }
 
-pub(crate) struct PulseCode<const N: usize> {
-    buffer: BitArray<[u8; N], Msb0>,
+pub(crate) struct PulseCode<W, const N: usize> {
+    buffer: [W; N],
     len: usize,
 }
 
-impl<const N: usize> PulseCode<N> {
+impl<W: Word, const N: usize> PulseCode<W, N> {
     fn new(high: usize, low: usize) -> Self {
-        let mut buffer = BitArray::new([0u8; N]);
-        for mut v in &mut buffer[..high] {
-            v.set(true);
-        }
+        let mut buffer = [W::ZERO; N];
+        copy_bits_msb(&[!W::ZERO; N], high, &mut buffer, 0);
         Self {
             buffer,
             len: high + low,
         }
     }
 
-    pub(crate) fn bits(&self) -> &BitSlice<u8, Msb0> {
-        &self.buffer[..self.len]
+    pub(crate) fn bits(&self) -> &[W] {
+        &self.buffer
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -105,20 +103,20 @@ impl<const N: usize> PulseCode<N> {
     }
 }
 
-pub(crate) struct Pulses<const N: usize> {
-    zero: PulseCode<N>,
-    one: PulseCode<N>,
+pub(crate) struct Pulses<W, const N: usize> {
+    zero: PulseCode<W, N>,
+    one: PulseCode<W, N>,
 }
 
-impl<const N: usize> Pulses<N> {
-    pub(crate) fn new<Led: ClocklessLed>(timing: &ClocklessSpiTiming<Led>) -> Pulses<N> {
+impl<W: Word, const N: usize> Pulses<W, N> {
+    pub(crate) fn new<Led: ClocklessLed>(timing: &ClocklessSpiTiming<Led>) -> Self {
         Self {
             zero: PulseCode::new(timing.t_0h as usize, timing.t_0l as usize),
             one: PulseCode::new(timing.t_1h as usize, timing.t_1l as usize),
         }
     }
 
-    pub(crate) fn get(&self, value: bool) -> &PulseCode<N> {
+    pub(crate) fn get(&self, value: bool) -> &PulseCode<W, N> {
         if value {
             &self.one
         } else {

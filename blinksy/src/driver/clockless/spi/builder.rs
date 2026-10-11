@@ -9,6 +9,7 @@ use crate::driver::ClocklessSpi;
 #[cfg(feature = "async")]
 use crate::driver::ClocklessSpiAsync;
 use crate::markers::{Async, Blocking};
+use crate::util::bits::Word;
 
 /// Builder for [`ClocklessSpi`] and [`ClocklessSpiAsync`]
 pub struct ClocklessSpiBuilder<
@@ -125,7 +126,7 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord>
     ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, u32, Blocking>
 where
     Spi: SpiBus<SpiWord>,
-    SpiWord: Copy + 'static,
+    SpiWord: Word + 'static,
     Led: ClocklessLed,
 {
     pub fn build(self) -> ClocklessSpi<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord> {
@@ -140,7 +141,7 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord>
     ClocklessSpiBuilder<BUFFER_SIZE, PULSE_SIZE, Spi, Led, SpiWord, u32, Async>
 where
     Spi: SpiBusAsync<SpiWord>,
-    SpiWord: Copy + 'static,
+    SpiWord: Word + 'static,
     Led: ClocklessLed,
 {
     pub fn build(self) -> ClocklessSpiAsync<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord> {

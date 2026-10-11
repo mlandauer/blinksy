@@ -1,7 +1,5 @@
 use core::marker::PhantomData;
 
-use bitvec::prelude::*;
-use bitvec::view::BitView;
 use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
@@ -10,7 +8,7 @@ use crate::driver::t_cycle;
 #[cfg(feature = "async")]
 use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
-use crate::util::bits::Word;
+use crate::util::bits::{word_to_bits_msb, BitWriterMsb, Word};
 
 mod encoding;
 pub use encoding::ClocklessSpiTiming;
@@ -177,7 +175,7 @@ where
     spi: Spi,
     /// Details of the timing used for sending the SPI signal
     pub timing: ClocklessSpiTiming<Led>,
-    pulses: Pulses<PULSE_SIZE>,
+    pulses: Pulses<SpiWord, PULSE_SIZE>,
     spi_word: PhantomData<SpiWord>,
 }
 
@@ -228,7 +226,7 @@ where
     spi: Spi,
     /// Details of the timing used for sending the SPI signal
     pub timing: ClocklessSpiTiming<Led>,
-    pulses: Pulses<PULSE_SIZE>,
+    pulses: Pulses<SpiWord, PULSE_SIZE>,
     spi_word: PhantomData<SpiWord>,
 }
 
@@ -237,7 +235,7 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
     Spi: SpiBus<SpiWord>,
-    SpiWord: Copy + 'static,
+    SpiWord: Word + 'static,
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
         let timing = ClocklessSpiTiming::new(freq_hz_to_duration_ns(freq_hz));
@@ -255,7 +253,7 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
     ClocklessSpiAsync<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
-    SpiWord: Copy + 'static,
+    SpiWord: Word + 'static,
     Spi: SpiBusAsync<SpiWord>,
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
@@ -273,9 +271,9 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord> Clock
     for ClocklessSpi<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
-    Led::Word: BitView,
+    Led::Word: Word,
     Spi: SpiBus<SpiWord>,
-    SpiWord: Copy + 'static + BitStore,
+    SpiWord: Word + 'static,
 {
     type Error = Spi::Error;
 
@@ -294,9 +292,9 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord> Clock
     for ClocklessSpiAsync<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
-    Led::Word: BitView,
+    Led::Word: Word,
     Spi: SpiBusAsync<SpiWord>,
-    SpiWord: Copy + 'static + BitStore,
+    SpiWord: Word + 'static,
 {
     type Error = Spi::Error;
 
@@ -313,18 +311,17 @@ where
 fn encode_spi_buffer<Led, const N: usize, SpiWord>(
     frame: &[Led::Word],
     buffer: &mut [SpiWord],
-    pulses: &Pulses<N>,
+    pulses: &Pulses<SpiWord, N>,
 ) where
-    Led::Word: BitView,
+    Led::Word: Word,
     Led: ClocklessLed,
-    SpiWord: Copy + 'static + BitStore,
+    SpiWord: Word + 'static,
 {
-    let mut dest = buffer.view_bits_mut::<Msb0>();
-    for v in frame {
-        for bit in v.view_bits::<Msb0>() {
-            let pattern = pulses.get(*bit);
-            dest[..pattern.len()].clone_from_bitslice(pattern.bits());
-            dest = &mut dest[pattern.len()..]
+    let mut writer = BitWriterMsb::new(buffer);
+    for word in frame {
+        for bit in word_to_bits_msb(*word) {
+            let pulse = pulses.get(bit);
+            writer.write_bits(pulse.bits(), pulse.len());
         }
     }
 }
