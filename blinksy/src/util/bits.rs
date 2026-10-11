@@ -76,8 +76,45 @@ pub fn word_to_bits_msb<W: Word>(word: W) -> BitsMsb<W> {
     BitsMsb::new(word)
 }
 
+/// Appends bits to a slice of words, filling each word from its most significant bit
+pub struct BitWriterMsb<'a, W: Word> {
+    words: &'a mut [W],
+    position: usize,
+}
+
+impl<'a, W: Word> BitWriterMsb<'a, W> {
+    pub fn new(words: &'a mut [W]) -> Self {
+        Self { words, position: 0 }
+    }
+
+    pub fn write_bits(&mut self, slice: BitSlice<W>) {
+        copy_bits_msb(
+            &slice,
+            &mut BitSliceMut {
+                buffer: self.words,
+                offset: self.position,
+                length: slice.length,
+            },
+        );
+        self.position += slice.length;
+    }
+}
+
+// Represents a view of the bits in a buffer
+pub struct BitSlice<'a, W: Word> {
+    pub buffer: &'a [W],
+    pub offset: usize,
+    pub length: usize,
+}
+
+pub struct BitSliceMut<'a, W: Word> {
+    pub buffer: &'a mut [W],
+    pub offset: usize,
+    pub length: usize,
+}
+
 /// Copies the bits from `src` to `dst`
-/// Note that this is currently restricted to the source have zero offset
+/// Note that this is currently restricted to the source having zero offset
 pub fn copy_bits_msb<W: Word>(src: &BitSlice<W>, dst: &mut BitSliceMut<W>) {
     {
         assert_eq!(src.offset, 0);
@@ -132,43 +169,6 @@ fn copy_bits_in_word<W: Word>(
         input << (input_offset - output_offset)
     };
     *output = (*output & !output_mask) | (input_in_output_position & output_mask);
-}
-
-// Represents a view of the bits in a buffer
-pub struct BitSlice<'a, W: Word> {
-    pub buffer: &'a [W],
-    pub offset: usize,
-    pub length: usize,
-}
-
-pub struct BitSliceMut<'a, W: Word> {
-    pub buffer: &'a mut [W],
-    pub offset: usize,
-    pub length: usize,
-}
-
-/// Appends bits to a slice of words, filling each word from its most significant bit
-pub struct BitWriterMsb<'a, W: Word> {
-    words: &'a mut [W],
-    position: usize,
-}
-
-impl<'a, W: Word> BitWriterMsb<'a, W> {
-    pub fn new(words: &'a mut [W]) -> Self {
-        Self { words, position: 0 }
-    }
-
-    pub fn write_bits(&mut self, slice: BitSlice<W>) {
-        copy_bits_msb(
-            &slice,
-            &mut BitSliceMut {
-                buffer: self.words,
-                offset: self.position,
-                length: slice.length,
-            },
-        );
-        self.position += slice.length;
-    }
 }
 
 #[cfg(test)]
