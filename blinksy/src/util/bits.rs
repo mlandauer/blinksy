@@ -109,11 +109,13 @@ fn copy_bits_in_word<W: Word>(
 ) {
     let word_bits = W::BITS as usize;
 
-    let len_mask = !W::ZERO << (word_bits - len);
-    let src_mask = len_mask >> src_offset;
-    let dst_mask = len_mask >> dst_offset;
-    let masked_src_in_dst_position = (src & src_mask) >> (dst_offset - src_offset);
-    *dst = (*dst & !dst_mask) | masked_src_in_dst_position;
+    let dst_mask = !W::ZERO << (word_bits - len) >> dst_offset;
+    let src_in_dst_position = if dst_offset > src_offset {
+        src >> (dst_offset - src_offset)
+    } else {
+        src << (src_offset - dst_offset)
+    };
+    *dst = (*dst & !dst_mask) | (src_in_dst_position & dst_mask);
 }
 
 /// Appends bits to a slice of words, filling each word from its most significant bit
@@ -176,5 +178,29 @@ mod tests {
         copy_bits_msb(&[0b0000_0000, 0b0000_0000], 11, &mut dst, 5);
 
         assert_eq!(dst, [0b1111_1000, 0b0000_0000, 0b1111_1111]);
+    }
+
+    #[test]
+    fn test_copy_bits_in_words_simple() {
+        let mut dst: u8 = 0b1111_1111;
+        copy_bits_in_word(0b0000_0000, &mut dst, 0, 0, 3);
+
+        assert_eq!(dst, 0b0001_1111);
+    }
+
+    #[test]
+    fn test_copy_bits_in_words_with_src_offset() {
+        let mut dst: u8 = 0b1111_1111;
+        copy_bits_in_word(0b0000_0000, &mut dst, 4, 0, 3);
+
+        assert_eq!(dst, 0b0001_1111);
+    }
+
+    #[test]
+    fn test_copy_bits_in_words_with_dst_offset() {
+        let mut dst: u8 = 0b1111_1111;
+        copy_bits_in_word(0b0000_0000, &mut dst, 0, 4, 3);
+
+        assert_eq!(dst, 0b1111_0001);
     }
 }
