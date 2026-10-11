@@ -100,6 +100,22 @@ pub fn copy_bits_msb<W: Word>(src: &[W], len: usize, dst: &mut [W], dst_start: u
     }
 }
 
+fn copy_bits_in_word<W: Word>(
+    src: W,
+    dst: &mut W,
+    src_offset: usize,
+    dst_offset: usize,
+    len: usize,
+) {
+    let word_bits = W::BITS as usize;
+
+    let len_mask = !W::ZERO << (word_bits - len);
+    let src_mask = len_mask >> src_offset;
+    let dst_mask = len_mask >> dst_offset;
+    let masked_src_in_dst_position = (src & src_mask) >> (dst_offset - src_offset);
+    *dst = (*dst & !dst_mask) | masked_src_in_dst_position;
+}
+
 /// Appends bits to a slice of words, filling each word from its most significant bit
 pub struct BitWriterMsb<'a, W: Word> {
     words: &'a mut [W],
