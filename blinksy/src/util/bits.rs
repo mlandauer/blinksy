@@ -77,6 +77,7 @@ pub fn word_to_bits_msb<W: Word>(word: W) -> BitsMsb<W> {
 }
 
 /// Copies the bits from `src` to `dst`
+/// Note that this is currently restricted to the source have zero offset
 pub fn copy_bits_msb<W: Word>(src: &BitSlice<W>, dst: &mut BitSliceMut<W>) {
     {
         assert_eq!(src.offset, 0);
