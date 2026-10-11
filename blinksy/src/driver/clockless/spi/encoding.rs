@@ -87,7 +87,7 @@ pub(crate) struct PulseCode<W, const N: usize> {
 impl<W: Word, const N: usize> PulseCode<W, N> {
     fn new(high: usize, low: usize) -> Self {
         let mut buffer = [W::ZERO; N];
-        copy_bits_msb(&[!W::ZERO; N], high, &mut buffer, 0);
+        copy_bits_msb(&[!W::ZERO; N], 0, high, &mut buffer, 0, high);
         Self {
             buffer,
             len: high + low,

@@ -76,15 +76,27 @@ pub fn word_to_bits_msb<W: Word>(word: W) -> BitsMsb<W> {
     BitsMsb::new(word)
 }
 
-/// Copies the first `len` bits of `src` into `dst`, starting at bit `dst_start`
-pub fn copy_bits_msb<W: Word>(src: &[W], len: usize, dst: &mut [W], dst_start: usize) {
+/// Copies the `len` bits of `src` starting at bit `src_start` into `dst`, starting at bit `dst_start`
+pub fn copy_bits_msb<W: Word>(
+    src: &[W],
+    src_start: usize,
+    src_len: usize,
+    dst: &mut [W],
+    dst_start: usize,
+    dst_len: usize,
+) {
+    assert_eq!(src_start, 0);
+    assert_eq!(
+        src_len, dst_len,
+        "source and destination need to be the same size when copying"
+    );
     let word_bits = W::BITS as usize;
     let dst_first_index = dst_start / word_bits;
     let dst_shift = dst_start % word_bits;
 
-    for (i, &input) in src[..len.div_ceil(word_bits)].iter().enumerate() {
+    for (i, &input) in src[..src_len.div_ceil(word_bits)].iter().enumerate() {
         // Number of bits to copy in this word
-        let count = (len - i * word_bits).min(word_bits);
+        let count = (src_len - i * word_bits).min(word_bits);
         // The bits that fit into the current destination word
         copy_bits_in_word(input, &mut dst[dst_first_index + i], 0, dst_shift, count);
         // If there wasn't enough room in the first word we overflow into the next
@@ -137,8 +149,14 @@ impl<'a, W: Word> BitWriterMsb<'a, W> {
     }
 
     pub fn write_bits(&mut self, slice: BitSlice<W>) {
-        assert_eq!(slice.offset, 0);
-        copy_bits_msb(slice.buffer, slice.length, self.words, self.position);
+        copy_bits_msb(
+            slice.buffer,
+            slice.offset,
+            slice.length,
+            self.words,
+            self.position,
+            slice.length,
+        );
         self.position += slice.length;
     }
 }
@@ -174,7 +192,7 @@ mod tests {
     #[test]
     fn test_copy_bits_msb_simple() {
         let mut dst: [u8; 2] = [0b1111_111, 0b1111_1111];
-        copy_bits_msb(&[0b0000_0000, 0b0000_0000], 11, &mut dst, 0);
+        copy_bits_msb(&[0b0000_0000, 0b0000_0000], 0, 11, &mut dst, 0, 11);
 
         assert_eq!(dst, [0b0000_0000, 0b0001_1111]);
     }
@@ -182,7 +200,7 @@ mod tests {
     #[test]
     fn test_copy_bits_msb_across_word_boundary() {
         let mut dst: [u8; 3] = [0b1111_1111, 0b1111_1111, 0b1111_1111];
-        copy_bits_msb(&[0b0000_0000, 0b0000_0000], 11, &mut dst, 5);
+        copy_bits_msb(&[0b0000_0000, 0b0000_0000], 0, 11, &mut dst, 5, 11);
 
         assert_eq!(dst, [0b1111_1000, 0b0000_0000, 0b1111_1111]);
     }

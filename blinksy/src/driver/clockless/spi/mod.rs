@@ -8,7 +8,7 @@ use crate::driver::t_cycle;
 #[cfg(feature = "async")]
 use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
-use crate::util::bits::{word_to_bits_msb, BitSlice, BitWriterMsb, Word};
+use crate::util::bits::{word_to_bits_msb, BitWriterMsb, Word};
 
 mod encoding;
 pub use encoding::ClocklessSpiTiming;
